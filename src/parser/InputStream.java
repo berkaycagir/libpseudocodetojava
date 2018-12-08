@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2018 Hasan Berkay Cagir <berkay at cagir.me> and Eda Ozge Ozel <eda.ozge.eo at gmail.com>.
+ * Copyright 2018 Hasan Berkay Cagir <berkay at cagir.me>, Eda Ozge Ozel <eda.ozge.eo at gmail.com>.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,7 @@ import java.io.RandomAccessFile;
 
 /**
  *
- * @author Hasan Berkay Cagir <berkay at cagir.me> and Eda Ozge Ozel
+ * @author Hasan Berkay Cagir <berkay at cagir.me>, Eda Ozge Ozel
  * <eda.ozge.eo at gmail.com>
  */
 public class InputStream {
