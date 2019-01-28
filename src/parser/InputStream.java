@@ -101,4 +101,8 @@ public class InputStream {
     private void ThrowException(String message, Throwable cause) throws Exception {
         throw new Exception(message + " (" + line + ":" + col + ")", cause);
     }
+    
+    public void ThrowException(String message) throws Exception {
+        throw new Exception(message + " (" + line + ":" + col + ")");
+    }
 }

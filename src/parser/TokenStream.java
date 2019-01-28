@@ -26,8 +26,12 @@ package parser;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import javafx.beans.property.SimpleBooleanProperty;
+import org.json.JSONObject;
 
 /**
  *
@@ -35,12 +39,11 @@ import java.util.regex.Pattern;
  * <eda.ozge.eo at gmail.com>
  */
 public class TokenStream {
-    private char current;
+    private JSONObject current = null;
     private List<String> keywords;
     private InputStream InputStream;
     
     public TokenStream(InputStream _InputStream) {
-        current = 0; // default value for char
         keywords = new ArrayList<>(Arrays.asList("input",
                                                  "print",
                                                  "if",
@@ -80,20 +83,20 @@ public class TokenStream {
         return Pattern.compile("/[a-z_]/i").matcher(String.valueOf(ch)).find();
     }
     
-    private boolean IsId(char ch) {
-        return IsIdStart(ch) || "?!-<>=0123456789".contains(String.valueOf(ch));
+    private Predicate<Character> IsId() {
+        return ch -> (IsIdStart(ch) || "?!-<>=0123456789".contains(String.valueOf(ch)));
     }
     
-    private boolean IsOpChar(char ch) {
-        return "+-*/!=<>".contains(String.valueOf(ch));
+    private Predicate<Character> IsOpChar() {
+        return ch -> "+-*/!=<>".contains(String.valueOf(ch));
     }
     
     private boolean IsPunc(char ch) {
         return ",(){}[]".contains(String.valueOf(ch));
     }
     
-    private boolean IsWhitespace(char ch) {
-        return "\t\n".contains(String.valueOf(ch));
+    private Predicate<Character> IsWhitespace() {
+        return ch -> " \t\n".contains(String.valueOf(ch));
     }
     
     private String ReadWhile(Predicate<Character> predicate) throws Exception {
@@ -106,5 +109,115 @@ public class TokenStream {
         return output.toString();
     }
     
-    //TODO: ReadNumber
+    private JSONObject ReadNumber() throws Exception {
+        SimpleBooleanProperty HasDot = new SimpleBooleanProperty(false);
+        JSONObject output = new JSONObject();
+        
+        String number = ReadWhile(ch -> {
+            if(Objects.equals(ch, ".")) {
+                if(HasDot.get())
+                    return false;
+                HasDot.set(true);
+                return true;
+            }
+            return IsDigit(ch);
+        });
+        
+        output.put("type", "num");
+        output.put("value", Float.valueOf(number));
+        
+        return output;
+    }
+    
+    private JSONObject ReadIdent() throws Exception {
+        String id = ReadWhile(IsId());
+        JSONObject output = new JSONObject();
+        
+        output.put("type", IsKeyword(id) ? "kw" : "var");
+        output.put("value", id);
+        
+        return output;
+    }
+    
+    private String ReadEscaped(char end) throws Exception {
+        boolean escaped = false;
+        StringBuilder output = new StringBuilder();
+        InputStream.next();
+        while(!InputStream.eof()) {
+            char ch = InputStream.next();
+            if(escaped) {
+                output.append(ch);
+                escaped = false;
+            } else if("\\".equals(String.valueOf(ch))) {
+                escaped = true;
+            } else if(ch == end) {
+                break;
+            } else {
+                output.append(ch);
+            }
+        }
+        
+        return output.toString();
+    }
+    
+    private JSONObject ReadString() throws Exception {
+        JSONObject output = new JSONObject();
+        
+        output.put("type", "str");
+        output.put("value", ReadEscaped('"'));
+        
+        return output;
+    }
+    
+    private void SkipComment() throws Exception {
+        ReadWhile(ch -> {
+            return !Objects.equals(ch, "\n");
+        });
+        InputStream.next();
+    }
+    
+    public <T> T ReadNext() throws Exception {
+        ReadWhile(IsWhitespace());
+        if(InputStream.eof())
+            return null;
+        char ch = InputStream.peek();
+        if(ch == '#') {
+            SkipComment();
+            return ReadNext();
+        }
+        if(ch == '"')
+            return (T) ReadString();
+        if(IsDigit(ch))
+            return (T) ReadNumber();
+        if(IsIdStart(ch))
+            return (T) ReadIdent();
+        if(IsPunc(ch)) {
+            JSONObject output = new JSONObject();
+            output.put("type", "punc");
+            output.put("value", InputStream.next());
+            return (T) output;
+        }
+        if(IsOpChar().test(ch)) {
+            JSONObject output = new JSONObject();
+            output.put("type", "op");
+            output.put("value", ReadWhile(IsOpChar()));
+            return (T) output;  
+        }
+        InputStream.ThrowException("Can't handle character: " + ch);
+        return null;
+    }
+    
+    public JSONObject Peek() throws Exception {
+        return current != null ? current : (current = ReadNext());
+    }
+    
+    public JSONObject Next() throws Exception {
+        JSONObject token = current;
+        current = null;
+        return token != null ? token : ReadNext();
+    }
+    
+    public boolean EOF() throws Exception {
+        return Peek() == null;
+    }
 }
