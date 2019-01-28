@@ -194,7 +194,7 @@ public class TokenStream {
         if(IsPunc(ch)) {
             JSONObject output = new JSONObject();
             output.put("type", "punc");
-            output.put("value", InputStream.next());
+            output.put("value", String.valueOf(InputStream.next()));
             return (T) output;
         }
         if(IsOpChar().test(ch)) {

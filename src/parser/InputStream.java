@@ -76,6 +76,8 @@ public class InputStream {
         
         try {
             ch = (char) SourceCodeFile.readByte();
+        } catch (EOFException e) {
+            throw e;
         } catch (IOException e) {
             ThrowException("char can't be read", e);
         }
