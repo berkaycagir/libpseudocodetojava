@@ -44,7 +44,7 @@ public class InputStream {
         pos = 0;
         line = 1;
         col = 0;
-        try{
+        try {
             this.SourceCodeFile = new RandomAccessFile(_SourceCodeFile, "r");
         } catch (FileNotFoundException e) {
             ThrowException("file can't be opened", e);
@@ -55,7 +55,7 @@ public class InputStream {
         char ch = 0;
         
         try {
-            ch = SourceCodeFile.readChar();
+            ch = (char) SourceCodeFile.readByte();
         } catch (IOException e) {
             ThrowException("char can't be read", e);
         }
@@ -75,12 +75,12 @@ public class InputStream {
         char ch = 0;
         
         try {
-            ch = SourceCodeFile.readChar();
+            ch = (char) SourceCodeFile.readByte();
         } catch (IOException e) {
             ThrowException("char can't be read", e);
         }
-        try{
-            SourceCodeFile.seek(pos - 1);
+        try {
+            SourceCodeFile.seek(pos);
         } catch (IOException e) {
             ThrowException("char pos can't be set", e);
         }

@@ -76,11 +76,11 @@ public class TokenStream {
     }
     
     private boolean IsDigit(char ch) {
-        return Pattern.compile("/[0-9]/i").matcher(String.valueOf(ch)).find();
+        return Pattern.compile("[0-9]", Pattern.CASE_INSENSITIVE).matcher(String.valueOf(ch)).find();
     }
     
     private boolean IsIdStart(char ch) {
-        return Pattern.compile("/[a-z_]/i").matcher(String.valueOf(ch)).find();
+        return Pattern.compile("[a-z_]", Pattern.CASE_INSENSITIVE).matcher(String.valueOf(ch)).find();
     }
     
     private Predicate<Character> IsId() {
