@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -67,7 +66,8 @@ public class TokenStream {
                                                  "sqrt",
                                                  "round",
                                                  "trunc",
-                                                 "swap"));
+                                                 "swap",
+                                                 "return"));
         this.InputStream = _InputStream;
     }
     
@@ -96,7 +96,7 @@ public class TokenStream {
     }
     
     private Predicate<Character> IsWhitespace() {
-        return ch -> " \t\n".contains(String.valueOf(ch));
+        return ch -> " \t".contains(String.valueOf(ch));
     }
     
     private String ReadWhile(Predicate<Character> predicate) throws Exception {
@@ -181,6 +181,11 @@ public class TokenStream {
         if(InputStream.eof())
             return null;
         char ch = InputStream.peek();
+        if(ch == '\n') {
+            JSONObject output = new JSONObject();
+            output.put("type", "eol");
+            return (T) output;
+        }
         if(ch == '#') {
             SkipComment();
             return ReadNext();
