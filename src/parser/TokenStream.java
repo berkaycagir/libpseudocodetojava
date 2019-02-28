@@ -181,14 +181,15 @@ public class TokenStream {
         if(InputStream.eof())
             return null;
         char ch = InputStream.peek();
-        if(ch == '\n') {
-            JSONObject output = new JSONObject();
-            output.put("type", "eol");
-            return (T) output;
-        }
         if(ch == '#') {
             SkipComment();
             return ReadNext();
+        }
+        if(ch == '\n') {
+            JSONObject output = new JSONObject();
+            output.put("type", "eol");
+            InputStream.next();
+            return (T) output;
         }
         if(ch == '"')
             return (T) ReadString();
