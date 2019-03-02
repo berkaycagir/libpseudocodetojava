@@ -176,7 +176,7 @@ public class TokenStream {
         InputStream.next();
     }
     
-    public <T> T ReadNext() throws Exception {
+    private <T> T ReadNext() throws Exception {
         ReadWhile(IsWhitespace());
         if(InputStream.eof())
             return null;
