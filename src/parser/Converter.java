@@ -25,6 +25,7 @@ package parser;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import org.json.JSONObject;
@@ -39,7 +40,7 @@ public class Converter {
     private TokenStream TokenStream;
     private File OutputFile;
     private JSONObject TempObject;
-    private HashMap<String, String> SymbolTable;
+    private HashMap<String, List<String>> SymbolTable;
 
     public Converter(TokenStream _TokenStream) {
         this.TokenStream = _TokenStream;
@@ -124,24 +125,24 @@ public class Converter {
                 output += ProcessKeywords(TempObject);
             } // Variables
             else if (TempObject.get("type").equals("var")) {
-                if (!SymbolTable.containsKey((String) TempObject.get("value"))) {
+                if (!SymbolTable.containsKey(TempObject.getString("value"))) {
                     throw new Exception();
                 }
                 output += ((String) TempObject.get("value"));
             } // Numbers
             else if (TempObject.get("type").equals("num")) {
-                if (((String) TempObject.get("value")).contains(".")) {
+                if (TempObject.getString("value").contains(".")) {
                     if (!SymbolTable.containsKey(var)) {
-                        SymbolTable.put(var, "float");
+                        SymbolTable.put(var, Arrays.asList("float", TempObject.getString("value")));
                         output = "float " + output;
-                    } else if (!SymbolTable.get(var).equals("float")) {
+                    } else if (!SymbolTable.get(var).get(0).equals("float")) {
                         throw new Exception();
                     }
                 } else {
                     if (!SymbolTable.containsKey(var)) {
-                        SymbolTable.put(var, "int");
+                        SymbolTable.put(var, Arrays.asList("int", TempObject.getString("value")));
                         output = "int " + output;
-                    } else if (!SymbolTable.get(var).equals("int")) {
+                    } else if (!SymbolTable.get(var).get(0).equals("int")) {
                         throw new Exception();
                     }
                 }
@@ -149,9 +150,9 @@ public class Converter {
             } // Strings
             else if (TempObject.get("type").equals("str")) {
                 if (!doesExist) {
-                    SymbolTable.put(var, "str");
+                    SymbolTable.put(var, Arrays.asList("str", TempObject.getString("value")));
                     output = "String " + output;
-                } else if (!SymbolTable.get(var).equals("str")) {
+                } else if (!SymbolTable.get(var).get(0).equals("str")) {
                     throw new Exception();
                 }
                 output += "\"" + ((String) TempObject.get("value")) + "\"";
@@ -182,7 +183,7 @@ public class Converter {
             throw new Exception();
         }
         // Process body
-        TempObject = (JSONObject) TokenStream.Next();
+        TempObject = TokenStream.Next();
         while (!TempObject.getString("value").equals("else")
                 && !TempObject.getString("value").equals("elseif")
                 && !TempObject.getString("value").equals("endif")) {
@@ -326,13 +327,149 @@ public class Converter {
                         output.add(line);
                         TempObject = TokenStream.Next();
                     }
-                    if(!TempObject.getString("value").equals("endif")) {
-                       throw new Exception(); 
+                    if (!TempObject.getString("value").equals("endif")) {
+                        throw new Exception();
                     }
                     output.add("}");
                     break;
             }
         }
+        return output;
+    }
+
+    private List<String> ProcessWhile() throws Exception {
+        List<String> output = new ArrayList<>();
+        String line = "while (";
+        TempObject = TokenStream.Next();
+        // Condition
+        if (TempObject.get("value").equals("(")) {
+            line += ProcessParantheses() + " {";
+        } else {
+            throw new Exception();
+        }
+        output.add(line);
+        line = "";
+        // Confirm do exists
+        if (!(TempObject = TokenStream.Next()).get("value").equals("do")) {
+            throw new Exception();
+        }
+        // Process body
+        TempObject = TokenStream.Next();
+        while (!TempObject.getString("value").equals("endwhile")) {
+            switch (TempObject.getString("type")) {
+                case "num":
+                    line += TempObject.getString("value") + " ";
+                    break;
+                case "var":
+                    if (TokenStream.Peek().getString("value").equals("=")) {
+                        TokenStream.Next();
+                        line += ProcessAssignment(TempObject.getString("value"));
+                    }
+                    line += TempObject.getString("value") + " ";
+                    break;
+                case "kw":
+                    line += ProcessKeywords(TempObject);
+                    break;
+                case "str":
+                    // GEREKSIZ OLABILIR (EDA DEDI ONA KIZIN)
+                    line += "\"" + TempObject.getString("value") + "\"";
+                    break;
+                case "eol":
+                    line = "\n";
+                    break;
+                case "punc":
+                    if (TempObject.getString("value").equals("(")) {
+                        line += ProcessParantheses();
+                    }
+                    line += TempObject.getString("value");
+                    break;
+                case "op":
+                    line += TempObject.getString("value");
+                    break;
+            }
+            output.add(line);
+            TempObject = TokenStream.Next();
+        }
+        output.add("}");
+        return output;
+    }
+
+    private List<String> ProcessFor() throws Exception {
+        List<String> output = new ArrayList<>();
+        String line = "for (int ";
+        TempObject = TokenStream.Next();
+        // Condition
+        String var = TempObject.getString("value");
+        if (TempObject.get("type").equals("var")) {
+            // =
+            if (!(TempObject = TokenStream.Next()).getString("value").equals("=")) {
+                throw new Exception();
+            }
+            // baslangic_degeri
+            
+            line += "; " + var + "< ";
+            TempObject = TokenStream.Next(); // Skip "to"
+            while (!TempObject.getString("value").equals("by")) {
+                line += TempObject.getString("value") + " ";
+                TempObject = TokenStream.Next();
+            }
+            TempObject = TokenStream.Next();// skip "by"
+            line += "; " + var;
+            while (!TempObject.getString("value").equals("do")) {
+                line += TempObject.getString("value") + " ";
+                TempObject = TokenStream.Next();
+                if (1 < TempObject.getInt("value")) {
+                    line += TempObject.getString("value") + " ";   
+                } else {
+                    line += "+ ";
+                }
+               TempObject = TokenStream.Next(); 
+            }
+            TempObject = TokenStream.Next();
+            line += ") {";
+        } else {
+            throw new Exception();
+        }
+        output.add(line);
+        line = "";
+        // Process body
+        TempObject = TokenStream.Next();
+        while (!TempObject.getString("value").equals("endfor")) {
+            switch (TempObject.getString("type")) {
+                case "num":
+                    line += TempObject.getString("value") + " ";
+                    break;
+                case "var":
+                    if (TokenStream.Peek().getString("value").equals("=")) {
+                        TokenStream.Next();
+                        line += ProcessAssignment(TempObject.getString("value"));
+                    }
+                    line += TempObject.getString("value") + " ";
+                    break;
+                case "kw":
+                    line += ProcessKeywords(TempObject);
+                    break;
+                case "str":
+                    // GEREKSIZ OLABILIR (EDA DEDI ONA KIZIN)
+                    line += "\"" + TempObject.getString("value") + "\"";
+                    break;
+                case "eol":
+                    line = "\n";
+                    break;
+                case "punc":
+                    if (TempObject.getString("value").equals("(")) {
+                        line += ProcessParantheses();
+                    }
+                    line += TempObject.getString("value");
+                    break;
+                case "op":
+                    line += TempObject.getString("value");
+                    break;
+            }
+            output.add(line);
+            TempObject = TokenStream.Next();
+        }
+        output.add("}");
         return output;
     }
 
