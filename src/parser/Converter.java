@@ -24,6 +24,10 @@
 package parser;
 
 import java.io.File;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -39,20 +43,61 @@ import org.mariuszgromada.math.mxparser.Expression;
  */
 public class Converter {
 
+    private InputStream InputStream;
     private TokenStream TokenStream;
     private File OutputFile;
     private JSONObject TempObject;
     private HashMap<String, List<String>> SymbolTable;
 
-    public Converter(TokenStream _TokenStream) {
-        this.TokenStream = _TokenStream;
+    public Converter(String FilePath) throws Exception {
+        this.InputStream = new InputStream(new File(FilePath));
+        this.TokenStream = new TokenStream(this.InputStream);
         OutputFile = null; // TODO
         TempObject = null;
         SymbolTable = new HashMap<>();
         // TODO
     }
 
-    public void Convert() {
+    public void Convert(String FilePath) throws Exception {
+        List<String> array = new ArrayList<>();
+        JSONObject TempObject;
+        Path file = Paths.get(FilePath);
+        while (!TokenStream.EOF()) {
+            TempObject = TokenStream.Next();
+            switch (TempObject.getString("type")) {
+                case "num":
+                    array.add(TempObject.getString("value") + " ");
+                    break;
+                case "var":
+                    String var = TempObject.getString("value");
+                    if (TokenStream.Peek().getString("value").equals("=")) {
+                        TokenStream.Next();
+                        array.add(ProcessAssignment(var));
+                    }
+                    //array.add(TempObject.getString("value") + " ");
+                    break;
+                case "kw":
+                    array.add(ProcessKeywords(TempObject));
+                    break;
+                case "str":
+                    // GEREKSIZ OLABILIR (EDA DEDI ONA KIZIN)
+                    array.add("\"" + TempObject.getString("value") + "\"");
+                    break;
+                case "eol":
+                    array.add("\n");
+                    break;
+                case "punc":
+                    if (TempObject.getString("value").equals("(")) {
+                        array.add(ProcessParantheses());
+                    }
+                    array.add(TempObject.getString("value"));
+                    break;
+                case "op":
+                    array.add(TempObject.getString("value"));
+                    break;
+            }
+        }
+            Files.write(file, array, Charset.forName("UTF-8"));
 
     }
 
@@ -80,7 +125,7 @@ public class Converter {
         if (SymbolTable.containsKey(var)) {
             doesExist = true;
         }
-        TempObject = TokenStream.Next();
+        JSONObject TempObject = TokenStream.Next();
         while (!TempObject.get("type").equals("eol")) {
             // Nested statements
             if (TempObject.get("value").equals("(")) {
@@ -415,17 +460,17 @@ public class Converter {
         } else {
             line += "int " + var + " = ";
         }
-        
+
         // =
         if (!(TempObject = TokenStream.Next()).getString("value").equals("=")) {
             throw new Exception();
         }
-        
+
         // baslangic_degeri
         if ((TempObject = TokenStream.Next()).getString("value").equals("to")) {
             throw new Exception();
         }
-        
+
         Expression ValueExpression = new Expression();
         String ValueString = "";
         while (!TempObject.getString("value").equals("to")) {
@@ -441,12 +486,12 @@ public class Converter {
                     break;
                 case "var":
                     if (!SymbolTable.containsKey(TempObject.getString("value"))
-                        || !SymbolTable.get(TempObject.getString("value")).get(0).equals("int")) {
+                            || !SymbolTable.get(TempObject.getString("value")).get(0).equals("int")) {
                         throw new Exception();
                     }
                     ValueString += TempObject.getString("value");
                     ValueExpression.addArguments(new Argument(TempObject.getString("value"),
-                                              SymbolTable.get(TempObject.getString("value")).get(1)));
+                            SymbolTable.get(TempObject.getString("value")).get(1)));
                     break;
                 default:
                     throw new Exception();
@@ -461,12 +506,12 @@ public class Converter {
         line += ValueString + "; " + var;
         ValueExpression.clearExpressionString();
         ValueString = "";
-        
+
         // bir_sayi
         if ((TempObject = TokenStream.Next()).getString("value").equals("by")) {
             throw new Exception();
         }
-        
+
         while (!TempObject.getString("value").equals("by")) {
             switch (TempObject.getString("type")) {
                 case "num":
@@ -480,12 +525,12 @@ public class Converter {
                     break;
                 case "var":
                     if (!SymbolTable.containsKey(TempObject.getString("value"))
-                        || !SymbolTable.get(TempObject.getString("value")).get(0).equals("int")) {
+                            || !SymbolTable.get(TempObject.getString("value")).get(0).equals("int")) {
                         throw new Exception();
                     }
                     ValueString += TempObject.getString("value");
                     ValueExpression.addArguments(new Argument(TempObject.getString("value"),
-                                              SymbolTable.get(TempObject.getString("value")).get(1)));
+                            SymbolTable.get(TempObject.getString("value")).get(1)));
                     break;
                 default:
                     throw new Exception();
@@ -504,7 +549,7 @@ public class Converter {
         }
         ValueExpression.clearExpressionString();
         ValueString = "";
-        
+
         // degisim_miktari
         TempObject = TokenStream.Next();
         boolean IsPlus;
@@ -519,7 +564,7 @@ public class Converter {
                 throw new Exception();
         }
         line += var;
-        
+
         while (!TempObject.getString("value").equals("do")) {
             switch (TempObject.getString("type")) {
                 case "num":
@@ -533,12 +578,12 @@ public class Converter {
                     break;
                 case "var":
                     if (!SymbolTable.containsKey(TempObject.getString("value"))
-                        || !SymbolTable.get(TempObject.getString("value")).get(0).equals("int")) {
+                            || !SymbolTable.get(TempObject.getString("value")).get(0).equals("int")) {
                         throw new Exception();
                     }
                     ValueString += TempObject.getString("value");
                     ValueExpression.addArguments(new Argument(TempObject.getString("value"),
-                                              SymbolTable.get(TempObject.getString("value")).get(1)));
+                            SymbolTable.get(TempObject.getString("value")).get(1)));
                     break;
                 default:
                     throw new Exception();
@@ -549,7 +594,7 @@ public class Converter {
         if (!ValueExpression.checkLexSyntax() || !ValueExpression.checkSyntax()) {
             throw new Exception();
         }
-        
+
         if (IsPlus) {
             line += " + (" + ValueString + ")";
         } else {
@@ -557,11 +602,11 @@ public class Converter {
         }
         ValueExpression.clearExpressionString();
         ValueString = "";
-        
+
         line += ") {";
         output.add(line);
         line = "";
-        
+
         // Process body
         TempObject = TokenStream.Next();
         while (!TempObject.getString("value").equals("endfor")) {
@@ -581,6 +626,7 @@ public class Converter {
                     break;
                 case "str":
                     // GEREKSIZ OLABILIR (EDA DEDI ONA KIZIN)
+                    //hata verilmeli mi verilmemeli mi TODO
                     line += "\"" + TempObject.getString("value") + "\"";
                     break;
                 case "eol":

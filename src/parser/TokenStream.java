@@ -124,7 +124,7 @@ public class TokenStream {
         });
         
         output.put("type", "num");
-        output.put("value", Float.valueOf(number));
+        output.put("value", number);
         
         return output;
     }
