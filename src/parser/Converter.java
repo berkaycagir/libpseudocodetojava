@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import javafx.util.Pair;
 import org.json.JSONObject;
 import org.mariuszgromada.math.mxparser.Argument;
 import org.mariuszgromada.math.mxparser.Expression;
@@ -64,41 +65,48 @@ public class Converter {
         Path file = Paths.get(FilePath);
         while (!TokenStream.EOF()) {
             TempObject = TokenStream.Next();
-            switch (TempObject.getString("type")) {
+            array.addAll(ProcessType(TempObject));
+        }
+        Files.write(file, array, Charset.forName("UTF-8"));
+
+    }
+    
+    private List<String> ProcessType(JSONObject TempObject) throws Exception {
+        List<String> Output = new ArrayList<>();
+        switch (TempObject.getString("type")) {
                 case "num":
-                    array.add(TempObject.getString("value") + " ");
+                    Output.add(TempObject.getString("value") + " ");
                     break;
                 case "var":
                     String var = TempObject.getString("value");
                     if (TokenStream.Peek().getString("value").equals("=")) {
                         TokenStream.Next();
-                        array.add(ProcessAssignment(var));
+                        Output.add(ProcessAssignment(var));
+                    } else {
+                        Output.add(TempObject.getString("value") + " ");
                     }
-                    //array.add(TempObject.getString("value") + " ");
                     break;
                 case "kw":
-                    array.add(ProcessKeywords(TempObject));
+                    Output.add(ProcessKeywords(TempObject));
                     break;
                 case "str":
                     // GEREKSIZ OLABILIR (EDA DEDI ONA KIZIN)
-                    array.add("\"" + TempObject.getString("value") + "\"");
+                    Output.add("\"" + TempObject.getString("value") + "\"");
                     break;
                 case "eol":
-                    array.add("\n");
+                    Output.add("\n");
                     break;
                 case "punc":
                     if (TempObject.getString("value").equals("(")) {
-                        array.add(ProcessParantheses());
+                        Output.add(ProcessParantheses());
                     }
-                    array.add(TempObject.getString("value"));
+                    Output.add(TempObject.getString("value"));
                     break;
                 case "op":
-                    array.add(TempObject.getString("value"));
+                    Output.add(TempObject.getString("value"));
                     break;
             }
-        }
-            Files.write(file, array, Charset.forName("UTF-8"));
-
+        return Output;
     }
 
     private String ProcessPrint() throws Exception {
@@ -172,7 +180,8 @@ public class Converter {
                 output += ProcessKeywords(TempObject);
             } // Variables
             else if (TempObject.get("type").equals("var")) {
-                if (!SymbolTable.containsKey(TempObject.getString("value"))) {
+                if (!SymbolTable.containsKey(TempObject.getString("value"))
+                    || !SymbolTable.get(var).get(0).equals(SymbolTable.get(TempObject.getString("value")).get(0))) {
                     throw new Exception();
                 }
                 output += ((String) TempObject.get("value"));
@@ -234,38 +243,7 @@ public class Converter {
         while (!TempObject.getString("value").equals("else")
                 && !TempObject.getString("value").equals("elseif")
                 && !TempObject.getString("value").equals("endif")) {
-            switch (TempObject.getString("type")) {
-                case "num":
-                    line += TempObject.getString("value") + " ";
-                    break;
-                case "var":
-                    if (TokenStream.Peek().getString("value").equals("=")) {
-                        TokenStream.Next();
-                        line += ProcessAssignment(TempObject.getString("value"));
-                    }
-                    line += TempObject.getString("value") + " ";
-                    break;
-                case "kw":
-                    line += ProcessKeywords(TempObject);
-                    break;
-                case "str":
-                    // GEREKSIZ OLABILIR (EDA DEDI ONA KIZIN)
-                    line += "\"" + TempObject.getString("value") + "\"";
-                    break;
-                case "eol":
-                    line = "\n";
-                    break;
-                case "punc":
-                    if (TempObject.getString("value").equals("(")) {
-                        line += ProcessParantheses();
-                    }
-                    line += TempObject.getString("value");
-                    break;
-                case "op":
-                    line += TempObject.getString("value");
-                    break;
-            }
-            output.add(line);
+            output.addAll(ProcessType(TempObject));
             TempObject = TokenStream.Next();
         }
         output.add("}");
@@ -293,38 +271,7 @@ public class Converter {
                         while (!TempObject.getString("value").equals("else")
                                 && !TempObject.getString("value").equals("elseif")
                                 && !TempObject.getString("value").equals("endif")) {
-                            switch (TempObject.getString("type")) {
-                                case "num":
-                                    line += TempObject.getString("value") + " ";
-                                    break;
-                                case "var":
-                                    if (TokenStream.Peek().getString("value").equals("=")) {
-                                        TokenStream.Next();
-                                        line += ProcessAssignment(TempObject.getString("value"));
-                                    }
-                                    line += TempObject.getString("value") + " ";
-                                    break;
-                                case "kw":
-                                    line += ProcessKeywords(TempObject);
-                                    break;
-                                case "str":
-                                    // GEREKSIZ OLABILIR (EDA DEDI ONA KIZIN)
-                                    line += "\"" + TempObject.getString("value") + "\"";
-                                    break;
-                                case "eol":
-                                    line = "\n";
-                                    break;
-                                case "punc":
-                                    if (TempObject.getString("value").equals("(")) {
-                                        line += ProcessParantheses();
-                                    }
-                                    line += TempObject.getString("value");
-                                    break;
-                                case "op":
-                                    line += TempObject.getString("value");
-                                    break;
-                            }
-                            output.add(line);
+                            output.addAll(ProcessType(TempObject));
                             TempObject = TokenStream.Next();
                         }
                         output.add("}");
@@ -340,38 +287,7 @@ public class Converter {
                     while (!TempObject.getString("value").equals("else")
                             && !TempObject.getString("value").equals("elseif")
                             && !TempObject.getString("value").equals("endif")) {
-                        switch (TempObject.getString("type")) {
-                            case "num":
-                                line += TempObject.getString("value") + " ";
-                                break;
-                            case "var":
-                                if (TokenStream.Peek().getString("value").equals("=")) {
-                                    TokenStream.Next();
-                                    line += ProcessAssignment(TempObject.getString("value"));
-                                }
-                                line += TempObject.getString("value") + " ";
-                                break;
-                            case "kw":
-                                line += ProcessKeywords(TempObject);
-                                break;
-                            case "str":
-                                // GEREKSIZ OLABILIR (EDA DEDI ONA KIZIN)
-                                line += "\"" + TempObject.getString("value") + "\"";
-                                break;
-                            case "eol":
-                                line = "\n";
-                                break;
-                            case "punc":
-                                if (TempObject.getString("value").equals("(")) {
-                                    line += ProcessParantheses();
-                                }
-                                line += TempObject.getString("value");
-                                break;
-                            case "op":
-                                line += TempObject.getString("value");
-                                break;
-                        }
-                        output.add(line);
+                        output.addAll(ProcessType(TempObject));
                         TempObject = TokenStream.Next();
                     }
                     if (!TempObject.getString("value").equals("endif")) {
@@ -403,38 +319,7 @@ public class Converter {
         // Process body
         TempObject = TokenStream.Next();
         while (!TempObject.getString("value").equals("endwhile")) {
-            switch (TempObject.getString("type")) {
-                case "num":
-                    line += TempObject.getString("value") + " ";
-                    break;
-                case "var":
-                    if (TokenStream.Peek().getString("value").equals("=")) {
-                        TokenStream.Next();
-                        line += ProcessAssignment(TempObject.getString("value"));
-                    }
-                    line += TempObject.getString("value") + " ";
-                    break;
-                case "kw":
-                    line += ProcessKeywords(TempObject);
-                    break;
-                case "str":
-                    // GEREKSIZ OLABILIR (EDA DEDI ONA KIZIN)
-                    line += "\"" + TempObject.getString("value") + "\"";
-                    break;
-                case "eol":
-                    line = "\n";
-                    break;
-                case "punc":
-                    if (TempObject.getString("value").equals("(")) {
-                        line += ProcessParantheses();
-                    }
-                    line += TempObject.getString("value");
-                    break;
-                case "op":
-                    line += TempObject.getString("value");
-                    break;
-            }
-            output.add(line);
+            output.addAll(ProcessType(TempObject));
             TempObject = TokenStream.Next();
         }
         output.add("}");
@@ -474,28 +359,9 @@ public class Converter {
         Expression ValueExpression = new Expression();
         String ValueString = "";
         while (!TempObject.getString("value").equals("to")) {
-            switch (TempObject.getString("type")) {
-                case "num":
-                    ValueString += TempObject.getString("value");
-                    break;
-                case "punc":
-                    if (!"+-*/".contains(TempObject.getString("value"))) {
-                        throw new Exception();
-                    }
-                    ValueString += TempObject.getString("value");
-                    break;
-                case "var":
-                    if (!SymbolTable.containsKey(TempObject.getString("value"))
-                            || !SymbolTable.get(TempObject.getString("value")).get(0).equals("int")) {
-                        throw new Exception();
-                    }
-                    ValueString += TempObject.getString("value");
-                    ValueExpression.addArguments(new Argument(TempObject.getString("value"),
-                            SymbolTable.get(TempObject.getString("value")).get(1)));
-                    break;
-                default:
-                    throw new Exception();
-            }
+            Pair<String, Expression> Input = ProcessForInitialization(TempObject, ValueString, ValueExpression);
+            ValueString = Input.getKey();
+            ValueExpression = Input.getValue();
             TempObject = TokenStream.Next();
         }
         ValueExpression.setExpressionString(ValueString);
@@ -513,28 +379,9 @@ public class Converter {
         }
 
         while (!TempObject.getString("value").equals("by")) {
-            switch (TempObject.getString("type")) {
-                case "num":
-                    ValueString += TempObject.getString("value");
-                    break;
-                case "punc":
-                    if (!"+-*/".contains(TempObject.getString("value"))) {
-                        throw new Exception();
-                    }
-                    ValueString += TempObject.getString("value");
-                    break;
-                case "var":
-                    if (!SymbolTable.containsKey(TempObject.getString("value"))
-                            || !SymbolTable.get(TempObject.getString("value")).get(0).equals("int")) {
-                        throw new Exception();
-                    }
-                    ValueString += TempObject.getString("value");
-                    ValueExpression.addArguments(new Argument(TempObject.getString("value"),
-                            SymbolTable.get(TempObject.getString("value")).get(1)));
-                    break;
-                default:
-                    throw new Exception();
-            }
+            Pair<String, Expression> Input = ProcessForInitialization(TempObject, ValueString, ValueExpression);
+            ValueString = Input.getKey();
+            ValueExpression = Input.getValue();
             TempObject = TokenStream.Next();
         }
         ValueExpression.setExpressionString(ValueString);
@@ -566,28 +413,9 @@ public class Converter {
         line += var;
 
         while (!TempObject.getString("value").equals("do")) {
-            switch (TempObject.getString("type")) {
-                case "num":
-                    ValueString += TempObject.getString("value");
-                    break;
-                case "punc":
-                    if (!"+-*/".contains(TempObject.getString("value"))) {
-                        throw new Exception();
-                    }
-                    ValueString += TempObject.getString("value");
-                    break;
-                case "var":
-                    if (!SymbolTable.containsKey(TempObject.getString("value"))
-                            || !SymbolTable.get(TempObject.getString("value")).get(0).equals("int")) {
-                        throw new Exception();
-                    }
-                    ValueString += TempObject.getString("value");
-                    ValueExpression.addArguments(new Argument(TempObject.getString("value"),
-                            SymbolTable.get(TempObject.getString("value")).get(1)));
-                    break;
-                default:
-                    throw new Exception();
-            }
+            Pair<String, Expression> Input = ProcessForInitialization(TempObject, ValueString, ValueExpression);
+            ValueString = Input.getKey();
+            ValueExpression = Input.getValue();
             TempObject = TokenStream.Next();
         }
         ValueExpression.setExpressionString(ValueString);
@@ -610,43 +438,38 @@ public class Converter {
         // Process body
         TempObject = TokenStream.Next();
         while (!TempObject.getString("value").equals("endfor")) {
-            switch (TempObject.getString("type")) {
-                case "num":
-                    line += TempObject.getString("value") + " ";
-                    break;
-                case "var":
-                    if (TokenStream.Peek().getString("value").equals("=")) {
-                        TokenStream.Next();
-                        line += ProcessAssignment(TempObject.getString("value"));
-                    }
-                    line += TempObject.getString("value") + " ";
-                    break;
-                case "kw":
-                    line += ProcessKeywords(TempObject);
-                    break;
-                case "str":
-                    // GEREKSIZ OLABILIR (EDA DEDI ONA KIZIN)
-                    //hata verilmeli mi verilmemeli mi TODO
-                    line += "\"" + TempObject.getString("value") + "\"";
-                    break;
-                case "eol":
-                    line = "\n";
-                    break;
-                case "punc":
-                    if (TempObject.getString("value").equals("(")) {
-                        line += ProcessParantheses();
-                    }
-                    line += TempObject.getString("value");
-                    break;
-                case "op":
-                    line += TempObject.getString("value");
-                    break;
-            }
-            output.add(line);
+            output.addAll(ProcessType(TempObject));
             TempObject = TokenStream.Next();
         }
         output.add("}");
         return output;
+    }
+    
+    private Pair<String, Expression> ProcessForInitialization(JSONObject TempObject, String ValueString, Expression ValueExpression) throws Exception {
+        List<String> Output = new ArrayList<>();
+        switch (TempObject.getString("type")) {
+                case "num":
+                    ValueString += TempObject.getString("value");
+                    break;
+                case "punc":
+                    if (!"+-*/".contains(TempObject.getString("value"))) {
+                        throw new Exception();
+                    }
+                    ValueString += TempObject.getString("value");
+                    break;
+                case "var":
+                    if (!SymbolTable.containsKey(TempObject.getString("value"))
+                            || !SymbolTable.get(TempObject.getString("value")).get(0).equals("int")) {
+                        throw new Exception();
+                    }
+                    ValueString += TempObject.getString("value");
+                    ValueExpression.addArguments(new Argument(TempObject.getString("value"),
+                            SymbolTable.get(TempObject.getString("value")).get(1)));
+                    break;
+                default:
+                    throw new Exception();
+            }
+        return new Pair<>(ValueString, ValueExpression);
     }
 
     private String ProcessParantheses() {
