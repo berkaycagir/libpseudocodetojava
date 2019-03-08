@@ -87,7 +87,7 @@ public class Converter {
                 }
                 break;
             case "kw":
-                Output.add(ProcessKeywords(TempObject));
+                Output.addAll(ProcessKeywords(TempObject));
                 break;
             case "str":
                 // GEREKSIZ OLABILIR (EDA DEDI ONA KIZIN)
@@ -384,7 +384,7 @@ public class Converter {
             throw new Exception();
         }
 
-        Expression ValueExpression = new Expression();
+        Expression ValueExpression = new Expression("");
         String ValueString = "";
         while (!TempObject.getString("value").equals("to")) {
             Pair<String, Expression> Input = ProcessForInitialization(TempObject, ValueString, ValueExpression);
@@ -506,8 +506,23 @@ public class Converter {
         return null;
     }
 
-    private String ProcessKeywords(JSONObject InputKeyword) {
-        // TODO
-        return null;
+    private List<String> ProcessKeywords(JSONObject InputKeyword) throws Exception {
+        List<String> Output = new ArrayList<>();
+        
+        switch (InputKeyword.getString("value")) {
+            case "if":
+                Output.addAll(ProcessIf());
+                break;
+            case "while":
+                Output.addAll(ProcessWhile());
+                break;
+            case "for":
+                Output.addAll(ProcessFor());
+                break;
+            default:
+                throw new Exception();
+        }
+        
+        return Output;
     }
 }
