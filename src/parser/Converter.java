@@ -94,7 +94,10 @@ public class Converter {
                 Output.add("\"" + TempObject.getString("value") + "\"");
                 break;
             case "eol":
-                Output.add("\n");
+                // TODO
+                /* if(!TokenStream.EOF() && TokenStream.Peek().getString("type").equals("eol")){
+                    Output.add("\n");   
+                } */
                 break;
             case "punc":
                 if (TempObject.getString("value").equals("(")) {
@@ -123,6 +126,7 @@ public class Converter {
         } else {
             throw new Exception();
         }
+        TokenStream.Next();
         return output;
     }
 
@@ -190,8 +194,7 @@ public class Converter {
                         if (!SymbolTable.get(var).get(0).equals(SymbolTable.get(TempObject.getString("value")).get(0))) {
                             throw new Exception();
                         }
-                    }
-                    // if left hand variable does not exist and has no type assigned
+                    } // if left hand variable does not exist and has no type assigned
                     else if (!doesExist && !typeAssigned) {
                         // assign the responding type
                         switch (SymbolTable.get(TempObject.getString("value")).get(0)) {
@@ -252,7 +255,7 @@ public class Converter {
 
     private List<String> ProcessIf() throws Exception {
         List<String> output = new ArrayList<>();
-        String line = "if (";
+        String line = "if ";
         JSONObject TempObject = TokenStream.Next();
         // Condition
         if (TempObject.get("value").equals("(")) {
@@ -268,7 +271,11 @@ public class Converter {
         }
         // Process body
         TempObject = TokenStream.Next();
-        while (!TempObject.getString("value").equals("else")
+        while (TempObject.getString("type").equals("eol")) {
+            TempObject = TokenStream.Next();
+        }
+        while (!TempObject.getString("type").equals("eol")
+                && !TempObject.getString("value").equals("else")
                 && !TempObject.getString("value").equals("elseif")
                 && !TempObject.getString("value").equals("endif")) {
             output.addAll(ProcessType(TempObject));
@@ -276,11 +283,15 @@ public class Converter {
         }
         output.add("}");
         // elseif
-        while (!TempObject.getString("value").equals("endif")) {
+        while (TempObject.getString("type").equals("eol")) {
+            TempObject = TokenStream.Next();
+        }
+        while (!TempObject.getString("type").equals("eol")
+                && !TempObject.getString("value").equals("endif")) {
             switch (TempObject.getString("value")) {
                 case "elseif":
                     while (TempObject.getString("value").equals("elseif")) {
-                        line = "else if (";
+                        line = "else if ";
                         TempObject = TokenStream.Next();
                         // Condition
                         if (TempObject.get("value").equals("(")) {
@@ -296,7 +307,11 @@ public class Converter {
                         }
 
                         TempObject = TokenStream.Next();
-                        while (!TempObject.getString("value").equals("else")
+                        while (TempObject.getString("type").equals("eol")) {
+                            TempObject = TokenStream.Next();
+                        }
+                        while (!TempObject.getString("type").equals("eol")
+                                && !TempObject.getString("value").equals("else")
                                 && !TempObject.getString("value").equals("elseif")
                                 && !TempObject.getString("value").equals("endif")) {
                             output.addAll(ProcessType(TempObject));
@@ -311,8 +326,14 @@ public class Converter {
                     if ((TempObject = TokenStream.Next()).get("value").equals("then")) {
                         throw new Exception();
                     }
-
-                    while (!TempObject.getString("value").equals("else")
+                    output.add(line);
+                    line = "";
+                    
+                    while (TempObject.getString("type").equals("eol")) {
+                        TempObject = TokenStream.Next();
+                    }
+                    while (!TempObject.getString("type").equals("eol")
+                            && !TempObject.getString("value").equals("else")
                             && !TempObject.getString("value").equals("elseif")
                             && !TempObject.getString("value").equals("endif")) {
                         output.addAll(ProcessType(TempObject));
@@ -330,7 +351,7 @@ public class Converter {
 
     private List<String> ProcessWhile() throws Exception {
         List<String> output = new ArrayList<>();
-        String line = "while (";
+        String line = "while ";
         JSONObject TempObject = TokenStream.Next();
         // Condition
         if (TempObject.get("value").equals("(")) {
@@ -346,7 +367,11 @@ public class Converter {
         }
         // Process body
         TempObject = TokenStream.Next();
-        while (!TempObject.getString("value").equals("endwhile")) {
+        while (TempObject.getString("type").equals("eol")) {
+            TempObject = TokenStream.Next();
+        }
+        while (!TempObject.getString("type").equals("eol")
+               && !TempObject.getString("value").equals("endwhile")) {
             output.addAll(ProcessType(TempObject));
             TempObject = TokenStream.Next();
         }
@@ -418,9 +443,9 @@ public class Converter {
         }
         int ToValue = (int) ValueExpression.calculate();
         if (InitialValue <= ToValue) {
-            line += "< " + ValueString + "; ";
+            line += " < " + ValueString + "; ";
         } else {
-            line += "> " + ValueString + "; ";
+            line += " > " + ValueString + "; ";
         }
         ValueExpression.clearExpressionString();
         ValueString = "";
@@ -440,6 +465,7 @@ public class Converter {
         }
         line += var;
 
+        TempObject = TokenStream.Next();
         while (!TempObject.getString("value").equals("do")) {
             Pair<String, Expression> Input = ProcessForInitialization(TempObject, ValueString, ValueExpression);
             ValueString = Input.getKey();
@@ -452,9 +478,9 @@ public class Converter {
         }
 
         if (IsPlus) {
-            line += " + (" + ValueString + ")";
+            line += " += (" + ValueString + ")";
         } else {
-            line += " - (" + ValueString + ")";
+            line += " -= (" + ValueString + ")";
         }
         ValueExpression.clearExpressionString();
         ValueString = "";
@@ -465,7 +491,8 @@ public class Converter {
 
         // Process body
         TempObject = TokenStream.Next();
-        while (!TempObject.getString("value").equals("endfor")) {
+        while (!(TempObject.getString("type").equals("kw")
+                && TempObject.getString("value").equals("endfor"))) {
             output.addAll(ProcessType(TempObject));
             TempObject = TokenStream.Next();
         }
@@ -501,14 +528,88 @@ public class Converter {
         return new Pair<>(ValueString, ValueExpression);
     }
 
-    private String ProcessParantheses() {
-        // TODO
-        return null;
+    private String ProcessParantheses() throws Exception {
+        String output = "(";
+        JSONObject TempObject = TokenStream.Next();
+        if (TempObject.getString("type").equals("punc")
+                && TempObject.getString("value").equals("(")) {
+            return output + ")";
+        }
+
+        while (!(TempObject.getString("type").equals("punc")
+                && TempObject.getString("value").equals(")"))) {
+            switch (TempObject.getString("type")) {
+                case "punc":
+                    if (TempObject.getString("value").equals("{")
+                            || TempObject.getString("value").equals("}")) {
+                        throw new Exception();
+                    }
+                    if (TempObject.getString("value").equals("(")) {
+                        output += ProcessParantheses();
+                    } else {
+                        output += TempObject.getString("value");
+                    }
+                    break;
+                case "kw":
+                    switch (TempObject.getString("value")) {
+                        case "mod":
+                            output += " % ";
+                            break;
+                        case "not":
+                            output += "!";
+                            break;
+                        case "and":
+                            output += " && ";
+                            break;
+                        case "or":
+                            output += " || ";
+                            break;
+                        case "abs":
+                            output += "Math.abs" + ProcessParantheses();
+                            break;
+                        case "pow":
+                            output += "Math.pow" + ProcessParantheses();
+                            break;
+                        case "sqrt":
+                            output += "Math.sqrt" + ProcessParantheses();
+                            break;
+                        case "round":
+                            output += "Math.round" + ProcessParantheses();
+                            break;
+                        case "trunc":
+                            output += "Math.ceil" + ProcessParantheses();
+                            break;
+                        default:
+                            throw new Exception();
+                    }
+                    break;
+                case "var":
+                    if (!SymbolTable.containsKey(TempObject.getString("value"))) {
+                        throw new Exception();
+                    }
+                    output += TempObject.getString("value");
+                    break;
+                case "num":
+                    output += TempObject.getString("value");
+                    break;
+                case "str":
+                    output += "\"" + TempObject.getString("value") + "\"";
+                    break;
+                case "op":
+                    output += TempObject.getString("value");
+                    break;
+                default:
+                    throw new Exception();
+            }
+            TempObject = TokenStream.Next();
+        }
+
+        return output + ")";
     }
 
     private List<String> ProcessKeywords(JSONObject InputKeyword) throws Exception {
         List<String> Output = new ArrayList<>();
-        
+
         switch (InputKeyword.getString("value")) {
             case "if":
                 Output.addAll(ProcessIf());
@@ -519,10 +620,13 @@ public class Converter {
             case "for":
                 Output.addAll(ProcessFor());
                 break;
+            case "print":
+                Output.add(ProcessPrint());
+                break;
             default:
                 throw new Exception();
         }
-        
+
         return Output;
     }
 }

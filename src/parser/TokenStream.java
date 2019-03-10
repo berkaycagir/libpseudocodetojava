@@ -62,7 +62,7 @@ public class TokenStream {
                                                  "and",
                                                  "or",
                                                  "abs",
-                                                 "sqr",
+                                                 "pow",
                                                  "sqrt",
                                                  "round",
                                                  "trunc",
