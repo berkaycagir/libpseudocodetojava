@@ -115,14 +115,14 @@ public class Converter {
     private String ProcessPrint() throws Exception {
         String output = "System.out.println(";
         JSONObject TempObject = TokenStream.Next();
-        if (!TempObject.get("type").equals("punc") && !TempObject.get("value").equals("(")) {
+        if (!TempObject.getString("type").equals("punc") && !TempObject.getString("value").equals("(")) {
             throw new Exception();
         }
         TempObject = TokenStream.Next();
-        if (TempObject.get("type").equals("var")) {
-            output += ((String) TempObject.get("value")) + ");";
-        } else if (TempObject.get("type").equals("str")) {
-            output += "\"" + ((String) TempObject.get("value")) + "\");";
+        if (TempObject.getString("type").equals("var")) {
+            output += TempObject.getString("value")+ ");";
+        } else if (TempObject.getString("type").equals("str")) {
+            output += "\"" + TempObject.getString("value") + "\");";
         } else {
             throw new Exception();
         }
@@ -140,13 +140,13 @@ public class Converter {
             doesExist = true;
         }
         JSONObject TempObject = TokenStream.Next();
-        while (!TempObject.get("type").equals("eol")) {
+        while (!TempObject.getString("type").equals("eol")) {
             // Nested statements
-            if (TempObject.get("value").equals("(")) {
+            if (TempObject.getString("value").equals("(")) {
                 output += ProcessParantheses();
             } // Operators
-            else if (TempObject.get("type").equals("op")) {
-                String op = (String) TempObject.get("value");
+            else if (TempObject.getString("type").equals("op")) {
+                String op = TempObject.getString("value");
                 switch (op) {
                     case "+":
                     case "-":
@@ -182,10 +182,10 @@ public class Converter {
                         throw new Exception();
                 }
             } // Keywords
-            else if (TempObject.get("type").equals("kw")) {
+            else if (TempObject.getString("type").equals("kw")) {
                 output += ProcessKeywords(TempObject);
             } // Variables
-            else if (TempObject.get("type").equals("var")) {
+            else if (TempObject.getString("type").equals("var")) {
                 // if right hand variable exists
                 if (SymbolTable.containsKey(TempObject.getString("value"))) {
                     // if left hand variable exists
@@ -217,7 +217,7 @@ public class Converter {
                     throw new Exception();
                 }
             } // Numbers
-            else if (TempObject.get("type").equals("num")) {
+            else if (TempObject.getString("type").equals("num")) {
                 if (TempObject.getString("value").contains(".")) {
                     if (!doesExist) {
                         SymbolTable.put(var, Arrays.asList("float", TempObject.getString("value")));
@@ -233,16 +233,16 @@ public class Converter {
                         throw new Exception();
                     }
                 }
-                output += ((String) TempObject.get("value"));
+                output += TempObject.getString("value");
             } // Strings
-            else if (TempObject.get("type").equals("str")) {
+            else if (TempObject.getString("type").equals("str")) {
                 if (!doesExist) {
                     SymbolTable.put(var, Arrays.asList("str", TempObject.getString("value")));
                     output = "String " + output;
                 } else if (!SymbolTable.get(var).get(0).equals("str")) {
                     throw new Exception();
                 }
-                output += "\"" + ((String) TempObject.get("value")) + "\"";
+                output += "\"" + TempObject.getString("value") + "\"";
 
             } else {
                 throw new Exception();
@@ -258,7 +258,7 @@ public class Converter {
         String line = "if ";
         JSONObject TempObject = TokenStream.Next();
         // Condition
-        if (TempObject.get("value").equals("(")) {
+        if (TempObject.getString("value").equals("(")) {
             line += ProcessParantheses() + " {";
         } else {
             throw new Exception();
@@ -294,7 +294,7 @@ public class Converter {
                         line = "else if ";
                         TempObject = TokenStream.Next();
                         // Condition
-                        if (TempObject.get("value").equals("(")) {
+                        if (TempObject.getString("value").equals("(")) {
                             line += ProcessParantheses() + " {";
                         } else {
                             throw new Exception();
@@ -354,7 +354,7 @@ public class Converter {
         String line = "while ";
         JSONObject TempObject = TokenStream.Next();
         // Condition
-        if (TempObject.get("value").equals("(")) {
+        if (TempObject.getString("value").equals("(")) {
             line += ProcessParantheses() + " {";
         } else {
             throw new Exception();
@@ -384,7 +384,7 @@ public class Converter {
         String line = "for (";
         JSONObject TempObject = TokenStream.Next();
         // Condition
-        if (!TempObject.get("type").equals("var")) {
+        if (!TempObject.getString("type").equals("var")) {
             throw new Exception();
         }
         String var = TempObject.getString("value");
