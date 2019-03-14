@@ -71,6 +71,20 @@ public class TokenStream {
         this.InputStream = _InputStream;
     }
     
+    public boolean AddKeyword(String input) {
+        if (this.keywords.contains(input)) {
+            return false;
+        } else {
+            this.keywords.add(input);
+        }
+        
+        return true;
+    }
+    
+    public boolean KeywordExists(String input) {
+        return this.keywords.contains(input);
+    }
+    
     private boolean IsKeyword(String input) {
         return keywords.contains(input);
     }

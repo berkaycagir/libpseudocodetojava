@@ -60,6 +60,7 @@ public class Converter {
     }
 
     public void Convert(String FilePath) throws Exception {
+
         List<String> array = new ArrayList<>();
         JSONObject TempObject;
         Path file = Paths.get(FilePath);
@@ -68,7 +69,41 @@ public class Converter {
             array.addAll(ProcessType(TempObject));
         }
         Files.write(file, array, Charset.forName("UTF-8"));
+    }
 
+    private void ProcessMethods() throws Exception {
+        String name;
+        List<String> types = Arrays.asList("str", "int", "float", "double", "long", "none");
+        JSONObject TempObject = TokenStream.Next();
+        while (!TokenStream.EOF()) {
+            if (TempObject.getString("value").equals("algorithm")) {
+                // type
+                TempObject = TokenStream.Next();
+                if (!types.contains(TempObject.getString("value"))) {
+                    throw new Exception();
+                }
+                // method name
+                TempObject = TokenStream.Next();
+                if (TokenStream.KeywordExists(TempObject.getString("value"))) {
+                    throw new Exception();
+                } else {
+                    name = TempObject.getString("value");
+                }
+                // paranthesis opening
+                TempObject = TokenStream.Next();
+                if(!TempObject.getString("value").equals("(")) {
+                    throw new Exception();
+                }
+                // parameters
+                TempObject = TokenStream.Next();
+                if(TempObject.getString("value").equals(")")) {
+                    throw new Exception();
+                }
+                while (!TempObject.getString("value").equals(")")) {
+                    // TODO
+                }
+            }
+        }
     }
 
     private List<String> ProcessType(JSONObject TempObject) throws Exception {
@@ -120,7 +155,7 @@ public class Converter {
         }
         TempObject = TokenStream.Next();
         if (TempObject.getString("type").equals("var")) {
-            output += TempObject.getString("value")+ ");";
+            output += TempObject.getString("value") + ");";
         } else if (TempObject.getString("type").equals("str")) {
             output += "\"" + TempObject.getString("value") + "\");";
         } else {
@@ -328,7 +363,7 @@ public class Converter {
                     }
                     output.add(line);
                     line = "";
-                    
+
                     while (TempObject.getString("type").equals("eol")) {
                         TempObject = TokenStream.Next();
                     }
@@ -371,7 +406,7 @@ public class Converter {
             TempObject = TokenStream.Next();
         }
         while (!TempObject.getString("type").equals("eol")
-               && !TempObject.getString("value").equals("endwhile")) {
+                && !TempObject.getString("value").equals("endwhile")) {
             output.addAll(ProcessType(TempObject));
             TempObject = TokenStream.Next();
         }
