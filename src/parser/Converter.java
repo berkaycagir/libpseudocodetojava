@@ -47,22 +47,22 @@ public class Converter {
 
     private InputStream InputStream;
     private TokenStream TokenStream;
-    private String tip;
+    private String FunctionReturnType;
+    private boolean FunctionReturnSatisfied;
     private File OutputFile;
-    private List<String> types = Arrays.asList("str", "int", "float", "double", "long");
-    // private JSONObject TempObject;
-    private HashMap<String, List<String>> SymbolTable;
+    private List<String> types = Arrays.asList("str", "int", "float", "double", "long", "none");
+    private HashMap<String, List<String>> SymbolTable = new HashMap<>();
+    private HashMap<String, String> FunctionTable = new HashMap<>();
 
     public Converter(String FilePath) throws Exception {
         this.InputStream = new InputStream(new File(FilePath));
         this.TokenStream = new TokenStream(this.InputStream);
         OutputFile = null; // TODO
-        SymbolTable = new HashMap<>();
-        // TODO
     }
 
     public void Convert(String FilePath) throws Exception {
         List<String> array = new ArrayList<>();
+        ProcessMethods();
         JSONObject TempObject = TokenStream.Next();
         Path file = Paths.get(FilePath);
         String line = "";
@@ -74,15 +74,14 @@ public class Converter {
                 line = "public static ";
                 // type
                 TempObject = TokenStream.Next();
-                
                 if (!types.contains(TempObject.getString("value"))) {
                     throw new Exception();
                 }
-                tip = TempObject.getString("value");
-                line += TempObject.getString("value") + " ";
+                FunctionReturnType = TempObject.getString("value");
+                line += (FunctionReturnType.equals("none")) ? "void " : FunctionReturnType + " ";
                 // method name
                 TempObject = TokenStream.Next();
-                if (TokenStream.KeywordExists(TempObject.getString("value"))) {
+                if (!FunctionTable.containsKey(TempObject.getString("value"))) {
                     throw new Exception();
                 } else {
                     line += TempObject.getString("value");
@@ -132,6 +131,7 @@ public class Converter {
                 }
                 TempObject = TokenStream.Next();
                 array.add(line);
+                FunctionReturnSatisfied = false;
                 while (!TempObject.getString("value").equals("endalgorithm")) {
                     array.addAll(ProcessType(TempObject));
                     TempObject = TokenStream.Next();
@@ -139,9 +139,14 @@ public class Converter {
                         TempObject = TokenStream.Next();
                     }
                 }
+                if (!FunctionReturnType.equals("none")
+                        && !FunctionReturnSatisfied) {
+                    throw new Exception();
+                }
                 localVar.keySet().forEach((i) -> {
                     SymbolTable.remove(i);
                 });
+                FunctionReturnType = "";
                 line = "}";
                 array.add(line);
             }
@@ -153,15 +158,19 @@ public class Converter {
     }
 
     private void ProcessMethods() throws Exception {
-        String name;
+        String name, type;
         JSONObject TempObject = TokenStream.Next();
         while (!TokenStream.EOF()) {
+            while (TempObject.getString("type").equals("eol")) {
+                TempObject = TokenStream.Next();
+            }
             if (TempObject.getString("value").equals("algorithm")) {
                 // type
                 TempObject = TokenStream.Next();
                 if (!types.contains(TempObject.getString("value"))) {
                     throw new Exception();
                 }
+                type = TempObject.getString("value");
                 // method name
                 TempObject = TokenStream.Next();
                 if (TokenStream.KeywordExists(TempObject.getString("value"))) {
@@ -176,9 +185,6 @@ public class Converter {
                 }
                 // parameters
                 TempObject = TokenStream.Next();
-                if (TempObject.getString("value").equals(")")) {
-                    throw new Exception();
-                }
                 while (!TempObject.getString("value").equals(")")) {
                     if (!types.contains(TempObject.getString("value"))) {
                         throw new Exception();
@@ -191,6 +197,9 @@ public class Converter {
                     if (!TempObject.getString("value").equals(",") && !TempObject.getString("value").equals(")")) {
                         throw new Exception();
                     }
+                    if (TempObject.getString("value").equals(",")) {
+                        TempObject = TokenStream.Next();
+                    }
                 }
                 TempObject = TokenStream.Next();
                 if (!TempObject.getString("value").equals("begin")) {
@@ -199,6 +208,7 @@ public class Converter {
                 TempObject = TokenStream.Next();
                 boolean endAlg = false;
                 while (!TokenStream.EOF()) {
+                    TempObject = TokenStream.Next();
                     if (TempObject.getString("value").equals("endalgorithm")) {
                         endAlg = true;
                         break;
@@ -208,6 +218,7 @@ public class Converter {
                     throw new Exception();
                 }
                 TokenStream.AddKeyword(name);
+                FunctionTable.put(name, type);
             }
             TempObject = TokenStream.Next();
         }
@@ -767,9 +778,36 @@ public class Converter {
                 Output.add(ProcessPrint());
                 break;
             case "return":
+                String line = "";
                 TempObject = TokenStream.Next();
-                // TODO
-                // if(TempObject.getString("type").equals(TempObject))
+                if (TempObject.getString("value").equals("eol")) {
+                    throw new Exception();
+                }
+                while (!TempObject.getString("value").equals("eol")) {
+                    switch (TempObject.getString("type")) {
+                        case "num":
+                            if(FunctionReturnType.equals("int") ||
+                                    FunctionReturnType.equals("long") || 
+                                    FunctionReturnType.equals("float") ||
+                                    FunctionReturnType.equals("double")) {
+                                // TODO
+                            }
+                            break;
+                        case "var":
+                            break;
+                        case "kw":
+                            break;
+                        case "str":
+                            break;
+                        case "eol":
+                            break;
+                        case "punc":
+                            break;
+                        case "op":
+                            break;
+                    }
+                    TempObject = TokenStream.Next();
+                }
             default:
                 throw new Exception();
         }

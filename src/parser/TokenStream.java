@@ -75,7 +75,8 @@ public class TokenStream {
                                                  "int",
                                                  "float",
                                                  "double",
-                                                 "long"));
+                                                 "long",
+                                                 "none"));
         this.InputStream = _InputStream;
     }
     
