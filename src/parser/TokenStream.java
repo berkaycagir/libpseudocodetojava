@@ -215,6 +215,7 @@ public class TokenStream {
         if(ch == '\n') {
             JSONObject output = new JSONObject();
             output.put("type", "eol");
+            output.put("value", "eol");
             InputStream.next();
             return (T) output;
         }
