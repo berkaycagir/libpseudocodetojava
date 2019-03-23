@@ -67,8 +67,21 @@ public class TokenStream {
                                                  "round",
                                                  "trunc",
                                                  "swap",
-                                                 "return"));
+                                                 "return",
+                                                 "algorithm",
+                                                 "begin",
+                                                 "endalgorithm",
+                                                 "str",
+                                                 "int",
+                                                 "float",
+                                                 "double",
+                                                 "long"));
         this.InputStream = _InputStream;
+    }
+    
+    public void reset() throws Exception {
+        this.InputStream = new InputStream(this.InputStream._SourceFile);
+        this.current = null;
     }
     
     public boolean AddKeyword(String input) {

@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javafx.util.Pair;
 import org.json.JSONObject;
 import org.mariuszgromada.math.mxparser.Argument;
@@ -47,6 +48,7 @@ public class Converter {
     private InputStream InputStream;
     private TokenStream TokenStream;
     private File OutputFile;
+    private List<String> types = Arrays.asList("str", "int", "float", "double", "long");
     // private JSONObject TempObject;
     private HashMap<String, List<String>> SymbolTable;
 
@@ -54,26 +56,91 @@ public class Converter {
         this.InputStream = new InputStream(new File(FilePath));
         this.TokenStream = new TokenStream(this.InputStream);
         OutputFile = null; // TODO
-        // TempObject = null;
         SymbolTable = new HashMap<>();
         // TODO
     }
 
     public void Convert(String FilePath) throws Exception {
-
         List<String> array = new ArrayList<>();
-        JSONObject TempObject;
+        JSONObject TempObject = TokenStream.Next();
         Path file = Paths.get(FilePath);
-        while (!TokenStream.EOF()) {
+        String line = "";
+        if (TempObject.getString("value").equals("algorithm")) {
+            line = "public static ";
+            // type
             TempObject = TokenStream.Next();
-            array.addAll(ProcessType(TempObject));
+            if (!types.contains(TempObject.getString("value"))) {
+                throw new Exception();
+            }
+            line += TempObject.getString("value") + " ";
+            // method name
+            TempObject = TokenStream.Next();
+            if (TokenStream.KeywordExists(TempObject.getString("value"))) {
+                throw new Exception();
+            } else {
+                line += TempObject.getString("value");
+            }
+            // paranthesis opening
+            TempObject = TokenStream.Next();
+            if (!TempObject.getString("value").equals("(")) {
+                throw new Exception();
+            }
+            line += TempObject.getString("value");
+            // parameters
+            TempObject = TokenStream.Next();
+            HashMap<String, String> localVar = new HashMap<>();
+            while (!TempObject.getString("value").equals(")")) {
+                if (!types.contains(TempObject.getString("value"))) {
+                    throw new Exception();
+                }
+                String tip = TempObject.getString("value");
+                line += TempObject.getString("value") + " ";
+                TempObject = TokenStream.Next();
+                if (!TempObject.getString("type").equals("var")) {
+                    throw new Exception();
+                }
+                if (localVar.containsKey(TempObject.getString("value"))) {
+                    throw new Exception();
+                }
+                localVar.put(TempObject.getString("value"), tip);
+                SymbolTable.put(TempObject.getString("value"), Arrays.asList(tip));
+                line += TempObject.getString("value") + " ";
+                TempObject = TokenStream.Next();
+                if (!TempObject.getString("value").equals(",") && !TempObject.getString("value").equals(")")) {
+                    throw new Exception();
+                }
+                line += TempObject.getString("value") + " ";
+            }
+            TempObject = TokenStream.Next();
+            if (!TempObject.getString("value").equals("begin")) {
+                throw new Exception();
+            }
+            line += ") {";
+            TempObject = TokenStream.Next();
+            if (!TempObject.getString("type").equals("eol")) {
+                throw new Exception();
+            }
+            TempObject = TokenStream.Next();
+            array.add(line);
+            while (!TempObject.getString("value").equals("endalgorithm")) {
+                array.addAll(ProcessType(TempObject));
+                TempObject = TokenStream.Next();
+                while (TempObject.getString("type").equals("eol")) {
+                    TempObject = TokenStream.Next();
+                }
+            }
+            localVar.keySet().forEach((i) -> {
+                SymbolTable.remove(i);
+            });
+            line = "}";
+            array.add(line);
+
         }
         Files.write(file, array, Charset.forName("UTF-8"));
     }
 
     private void ProcessMethods() throws Exception {
         String name;
-        List<String> types = Arrays.asList("str", "int", "float", "double", "long", "none");
         JSONObject TempObject = TokenStream.Next();
         while (!TokenStream.EOF()) {
             if (TempObject.getString("value").equals("algorithm")) {
@@ -91,19 +158,47 @@ public class Converter {
                 }
                 // paranthesis opening
                 TempObject = TokenStream.Next();
-                if(!TempObject.getString("value").equals("(")) {
+                if (!TempObject.getString("value").equals("(")) {
                     throw new Exception();
                 }
                 // parameters
                 TempObject = TokenStream.Next();
-                if(TempObject.getString("value").equals(")")) {
+                if (TempObject.getString("value").equals(")")) {
                     throw new Exception();
                 }
                 while (!TempObject.getString("value").equals(")")) {
-                    // TODO
+                    if (!types.contains(TempObject.getString("value"))) {
+                        throw new Exception();
+                    }
+                    TempObject = TokenStream.Next();
+                    if (!TempObject.getString("type").equals("var")) {
+                        throw new Exception();
+                    }
+                    TempObject = TokenStream.Next();
+                    if (!TempObject.getString("value").equals(",") && !TempObject.getString("value").equals(")")) {
+                        throw new Exception();
+                    }
                 }
+                TempObject = TokenStream.Next();
+                if (!TempObject.getString("value").equals("begin")) {
+                    throw new Exception();
+                }
+                TempObject = TokenStream.Next();
+                boolean endAlg = false;
+                while (!TokenStream.EOF()) {
+                    if (TempObject.getString("value").equals("endalgorithm")) {
+                        endAlg = true;
+                        break;
+                    }
+                }
+                if (!endAlg) {
+                    throw new Exception();
+                }
+                TokenStream.AddKeyword(name);
             }
+            TempObject = TokenStream.Next();
         }
+        TokenStream.reset();
     }
 
     private List<String> ProcessType(JSONObject TempObject) throws Exception {

@@ -39,6 +39,7 @@ public class InputStream {
     private int line;
     private int col;
     RandomAccessFile SourceCodeFile;
+    File _SourceFile;
     
     public InputStream(File _SourceCodeFile) throws Exception {
         pos = 0;
@@ -49,6 +50,7 @@ public class InputStream {
         } catch (FileNotFoundException e) {
             ThrowException("file can't be opened", e);
         }
+        _SourceFile = _SourceCodeFile.getAbsoluteFile();
     }
     
     public char next() throws Exception {
