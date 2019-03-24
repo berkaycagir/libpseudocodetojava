@@ -140,7 +140,7 @@ public class TokenStream {
         JSONObject output = new JSONObject();
         
         String number = ReadWhile(ch -> {
-            if(Objects.equals(ch, ".")) {
+            if(Objects.equals(ch, '.')) {
                 if(HasDot.get())
                     return false;
                 HasDot.set(true);
@@ -150,6 +150,7 @@ public class TokenStream {
         });
         
         output.put("type", "num");
+        output.put("subtype", (HasDot.get()) ? "float" : "int");
         output.put("value", number);
         
         return output;

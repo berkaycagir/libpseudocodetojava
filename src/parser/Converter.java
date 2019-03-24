@@ -153,7 +153,7 @@ public class Converter {
                 }
                 localVar.clear();
                 SymbolTable.clear();
-                
+
                 FunctionReturnType = "";
                 FunctionReturnSatisfied = false;
                 line = "}";
@@ -296,12 +296,10 @@ public class Converter {
     // TODO: Hata kontrolleri, e.g. "a = b +"
     private String ProcessAssignment(String var) throws Exception {
         String output = var + " = ";
-        boolean doesExist = false;
+        boolean doesExist = SymbolTable.containsKey(var);
         boolean typeAssigned = false;
+        String NumberType = "";
         float newValue = 0; // Islem icin deger tutma yapilacak
-        if (SymbolTable.containsKey(var)) {
-            doesExist = true;
-        }
         JSONObject TempObject = TokenStream.Next();
         while (!TempObject.getString("type").equals("eol")) {
             // Nested statements
@@ -315,7 +313,7 @@ public class Converter {
                     case "-":
                     case "*":
                     case "/":
-                        output += op;
+                        output += " " + op + " ";
                         break;
                     case "!":
                         if (TokenStream.Peek().get("value").equals("=")) {
@@ -354,8 +352,16 @@ public class Converter {
                     // if left hand variable exists
                     if (doesExist) {
                         // but not of the same type
-                        if (!SymbolTable.get(var).get(0).equals(SymbolTable.get(TempObject.getString("value")).get(0))) {
+                        if ((SymbolTable.get(var).get(0).equals("str")
+                            || SymbolTable.get(TempObject.getString("value")).get(0).equals("str"))
+                            && !SymbolTable.get(var).get(0).equals(SymbolTable.get(TempObject.getString("value")).get(0))) {
                             throw new Exception();
+                        }
+                        if (NumberType.equals("int")
+                            && SymbolTable.get(TempObject.getString("value")).get(0).equals("float")) {
+                            output = "float" + output.substring(3, output.length());
+                            SymbolTable.put(var, Arrays.asList("float"));
+                            NumberType = "float";
                         }
                     } // if left hand variable does not exist and has no type assigned
                     else if (!doesExist && !typeAssigned) {
@@ -364,6 +370,7 @@ public class Converter {
                             case "int":
                             case "float":
                                 output = SymbolTable.get(TempObject.getString("value")).get(0) + " " + output;
+                                NumberType = SymbolTable.get(TempObject.getString("value")).get(0);
                                 break;
                             case "str":
                                 output = "String " + output;
@@ -372,6 +379,7 @@ public class Converter {
                                 throw new Exception();
                         }
                         typeAssigned = true;
+                        doesExist = true;
                         SymbolTable.put(var, SymbolTable.get(TempObject.getString("value")));
                     }
                     output += TempObject.getString("value");
@@ -385,18 +393,18 @@ public class Converter {
                     if (!doesExist) {
                         SymbolTable.put(var, Arrays.asList("float", TempObject.getString("value")));
                         output = "float " + output;
-                    } else if (!SymbolTable.get(var).get(0).equals("float")) {
+                    } else if (SymbolTable.get(var).get(0).equals("str")) {
                         throw new Exception();
                     }
                 } else {
                     if (!doesExist) {
                         SymbolTable.put(var, Arrays.asList("int", TempObject.getString("value")));
                         output = "int " + output;
-                    } else if (!SymbolTable.get(var).get(0).equals("int")) {
+                    } else if (SymbolTable.get(var).get(0).equals("str")) {
                         throw new Exception();
                     }
                 }
-                output += TempObject.getString("value");
+                output += TempObject.getString("value") + ((TempObject.getString("subtype").equals("float")) ? "f" : "");
             } // Strings
             else if (TempObject.getString("type").equals("str")) {
                 if (!doesExist) {
@@ -789,7 +797,15 @@ public class Converter {
                 Output.addAll(ProcessReturn());
                 break;
             default:
-                throw new Exception();
+                if (!FunctionTable.containsKey(InputKeyword.getString("value"))) {
+                    throw new Exception();
+                }
+                String line = InputKeyword.getString("value");
+                InputKeyword = TokenStream.Next();
+                if (!InputKeyword.getString("value").equals("(")) {
+                    throw new Exception();
+                }
+                Output.add(line + ProcessParantheses() + ((TokenStream.Peek().getString("value").equals("eol")) ? ";" : ""));
         }
         return Output;
     }
@@ -819,8 +835,8 @@ public class Converter {
                             && !TempObject.getString("value").contains(".")) {
                         ParameterList.add("int");
                     } else if (FunctionReturnType.equals("str")
-                        && !ParameterList.contains("str")
-                        && TokenStream.Peek().getString("value").equals("eol")) {
+                            && !ParameterList.contains("str")
+                            && TokenStream.Peek().getString("value").equals("eol")) {
                         throw new Exception();
                     } else if (!FunctionReturnType.equals("str")) {
                         throw new Exception();
@@ -842,13 +858,16 @@ public class Converter {
                         throw new Exception();
                     }
                     if (!FunctionReturnType.equals("str")) {
-                        if (!FunctionTable.get(TempObject.getString("value")).contains(FunctionReturnType)) {
+                        if (!FunctionTable.get(TempObject.getString("value")).contains(FunctionReturnType)
+                            && !FunctionTable.get(TempObject.getString("value")).contains("str")) {
                             line += "(" + FunctionReturnType + ") ";
+                        } else if (FunctionTable.get(TempObject.getString("value")).contains("str")) {
+                            throw new Exception();
                         }
                     }
                     ParameterList.add(FunctionReturnType);
                     line += TempObject.getString("value");
-                    
+
                     TempObject = TokenStream.Next();
                     if (TempObject.getString("value").equals("(")) {
                         line += ProcessParantheses() + " ";
