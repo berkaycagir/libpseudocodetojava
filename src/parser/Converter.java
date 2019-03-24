@@ -50,9 +50,17 @@ public class Converter {
     private String FunctionReturnType;
     private boolean FunctionReturnSatisfied;
     private File OutputFile;
-    private List<String> types = Arrays.asList("str", "int", "float", "double", "long", "none");
+    private List<String> types = Arrays.asList("str", "int", "float", "none");
     private HashMap<String, List<String>> SymbolTable = new HashMap<>();
-    private HashMap<String, String> FunctionTable = new HashMap<>();
+    private HashMap<String, List<String>> FunctionTable = new HashMap<String, List<String>>() {
+        {
+            put("abs", Arrays.asList("int", "float"));
+            put("pow", Arrays.asList(""));
+            put("sqrt", Arrays.asList(""));
+            put("round", Arrays.asList("int"));
+            put("trunc", Arrays.asList(""));
+        }
+    };
 
     public Converter(String FilePath) throws Exception {
         this.InputStream = new InputStream(new File(FilePath));
@@ -78,7 +86,7 @@ public class Converter {
                     throw new Exception();
                 }
                 FunctionReturnType = TempObject.getString("value");
-                line += (FunctionReturnType.equals("none")) ? "void " : FunctionReturnType + " ";
+                line += (FunctionReturnType.equals("none")) ? "void " : (FunctionReturnType.equals("str")) ? "String " : FunctionReturnType + " ";
                 // method name
                 TempObject = TokenStream.Next();
                 if (!FunctionTable.containsKey(TempObject.getString("value"))) {
@@ -143,10 +151,11 @@ public class Converter {
                         && !FunctionReturnSatisfied) {
                     throw new Exception();
                 }
-                localVar.keySet().forEach((i) -> {
-                    SymbolTable.remove(i);
-                });
+                localVar.clear();
+                SymbolTable.clear();
+                
                 FunctionReturnType = "";
+                FunctionReturnSatisfied = false;
                 line = "}";
                 array.add(line);
             }
@@ -218,7 +227,7 @@ public class Converter {
                     throw new Exception();
                 }
                 TokenStream.AddKeyword(name);
-                FunctionTable.put(name, type);
+                FunctionTable.put(name, Arrays.asList(type));
             }
             TempObject = TokenStream.Next();
         }
@@ -763,7 +772,6 @@ public class Converter {
 
     private List<String> ProcessKeywords(JSONObject InputKeyword) throws Exception {
         List<String> Output = new ArrayList<>();
-        JSONObject TempObject = null;
         switch (InputKeyword.getString("value")) {
             case "if":
                 Output.addAll(ProcessIf());
@@ -778,40 +786,119 @@ public class Converter {
                 Output.add(ProcessPrint());
                 break;
             case "return":
-                String line = "";
-                TempObject = TokenStream.Next();
-                if (TempObject.getString("value").equals("eol")) {
-                    throw new Exception();
-                }
-                while (!TempObject.getString("value").equals("eol")) {
-                    switch (TempObject.getString("type")) {
-                        case "num":
-                            if(FunctionReturnType.equals("int") ||
-                                    FunctionReturnType.equals("long") || 
-                                    FunctionReturnType.equals("float") ||
-                                    FunctionReturnType.equals("double")) {
-                                // TODO
-                            }
-                            break;
-                        case "var":
-                            break;
-                        case "kw":
-                            break;
-                        case "str":
-                            break;
-                        case "eol":
-                            break;
-                        case "punc":
-                            break;
-                        case "op":
-                            break;
-                    }
-                    TempObject = TokenStream.Next();
-                }
+                Output.addAll(ProcessReturn());
+                break;
             default:
                 throw new Exception();
         }
-
         return Output;
+    }
+
+    private List<String> ProcessReturn() throws Exception {
+        JSONObject TempObject = TokenStream.Next();
+        if (FunctionReturnType.equals("none")) {
+            if (!TempObject.getString("value").equals("eol")) {
+                throw new Exception();
+            }
+            return Arrays.asList("return;");
+        }
+
+        List<String> ParameterList = new ArrayList<>();
+        String line = "return ";
+
+        if (TempObject.getString("value").equals("eol")) {
+            throw new Exception();
+        }
+        while (!TempObject.getString("value").equals("eol")) {
+            switch (TempObject.getString("type")) {
+                case "num":
+                    if (FunctionReturnType.equals("float")
+                            && TempObject.getString("value").contains(".")) {
+                        ParameterList.add("float");
+                    } else if (FunctionReturnType.equals("int")
+                            && !TempObject.getString("value").contains(".")) {
+                        ParameterList.add("int");
+                    } else if (FunctionReturnType.equals("str")
+                        && !ParameterList.contains("str")
+                        && TokenStream.Peek().getString("value").equals("eol")) {
+                        throw new Exception();
+                    } else if (!FunctionReturnType.equals("str")) {
+                        throw new Exception();
+                    }
+                    line += TempObject.getString("value") + " ";
+                    break;
+                case "var":
+                    if (FunctionReturnType.equals("int")
+                            || FunctionReturnType.equals("float")) {
+                        if (!SymbolTable.get(TempObject.getString("value")).get(0).equals(FunctionReturnType)) {
+                            throw new Exception();
+                        }
+                    }
+                    ParameterList.add(SymbolTable.get(TempObject.getString("value")).get(0));
+                    line += TempObject.getString("value") + " ";
+                    break;
+                case "kw":
+                    if (!FunctionTable.containsKey(TempObject.getString("value"))) {
+                        throw new Exception();
+                    }
+                    if (!FunctionReturnType.equals("str")) {
+                        if (!FunctionTable.get(TempObject.getString("value")).contains(FunctionReturnType)) {
+                            line += "(" + FunctionReturnType + ") ";
+                        }
+                    }
+                    ParameterList.add(FunctionReturnType);
+                    line += TempObject.getString("value");
+                    
+                    TempObject = TokenStream.Next();
+                    if (TempObject.getString("value").equals("(")) {
+                        line += ProcessParantheses() + " ";
+                    } else {
+                        throw new Exception();
+                    }
+                    break;
+                case "str":
+                    if (!FunctionReturnType.equals("str")) {
+                        throw new Exception();
+                    }
+                    ParameterList.add(FunctionReturnType);
+                    line += "\"" + TempObject.getString("value") + "\" ";
+                    break;
+                case "punc":
+                    // return'de parantez icinde olan seyleri denetlemiyoruz,
+                    // parantezde olan parantezde kalir
+                    if (TempObject.getString("value").equals("(")) {
+                        line += ProcessParantheses() + " ";
+                    } else {
+                        throw new Exception();
+                    }
+                    ParameterList.add("()");
+                    break;
+                case "op":
+                    if (TokenStream.Peek().getString("value").equals("eol")) {
+                        throw new Exception();
+                    }
+                    switch (FunctionReturnType) {
+                        case "int":
+                        case "float":
+                            if (!"+-*/".contains(TempObject.getString("value"))) {
+                                throw new Exception();
+                            }
+                            line += TempObject.getString("value") + " ";
+                            ParameterList.add(TempObject.getString("value"));
+                            break;
+                        case "str":
+                            if (!TempObject.getString("value").equals("+")) {
+                                throw new Exception();
+                            }
+                            line += "+ ";
+                            ParameterList.add("+");
+                            break;
+                    }
+                    break;
+            }
+            TempObject = TokenStream.Next();
+        }
+        FunctionReturnSatisfied = true;
+        return Arrays.asList(line.substring(0, line.length() - 1) + ";");
     }
 }
