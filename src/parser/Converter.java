@@ -307,6 +307,9 @@ public class Converter {
                 output += ProcessParantheses();
             } // Operators
             else if (TempObject.getString("type").equals("op")) {
+                if (TokenStream.Peek().getString("value").equals("eol")) {
+                    throw new Exception();
+                }
                 String op = TempObject.getString("value");
                 switch (op) {
                     case "+":
