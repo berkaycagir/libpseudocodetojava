@@ -50,8 +50,9 @@ public class Converter {
     private String FunctionReturnType;
     private boolean FunctionReturnSatisfied;
     private File OutputFile;
-    private List<String> types = Arrays.asList("str", "int", "float", "none");
+    private List<String> types = Arrays.asList("str", "int", "float", "none", "List");
     private HashMap<String, List<String>> SymbolTable = new HashMap<>();
+    private HashMap<String, List<String>> ArrayTable = new HashMap<>();
     private HashMap<String, List<String>> FunctionTable = new HashMap<String, List<String>>() {
         {
             put("abs", Arrays.asList("int", "float"));
@@ -74,6 +75,8 @@ public class Converter {
         JSONObject TempObject = TokenStream.Next();
         Path file = Paths.get(FilePath);
         String line = "";
+        String tip = "";
+        boolean isList = false;
         while (!TokenStream.EOF()) {
             while (TempObject.getString("type").equals("eol")) {
                 TempObject = TokenStream.Next();
@@ -107,17 +110,32 @@ public class Converter {
                     if (!types.contains(TempObject.getString("value"))) {
                         throw new Exception();
                     }
-                    String tip = TempObject.getString("value");
-                    line += (tip.equals("str")) ? "String " : tip + " ";
+                    tip = TempObject.getString("value");
                     TempObject = TokenStream.Next();
+                    if (TempObject.getString("value").equals("[")) {
+                        TempObject = TokenStream.Next();
+                        if (!TempObject.getString("value").equals("]")) {
+                            throw new Exception();
+                        }
+                        TempObject = TokenStream.Next();
+                        isList = true;
+                    }
+                    line += ((tip.equals("str")) ? "String" : tip) + ((isList) ? "[]" : "") + " ";
+
                     if (!TempObject.getString("type").equals("var")) {
                         throw new Exception();
                     }
                     if (localVar.containsKey(TempObject.getString("value"))) {
                         throw new Exception();
                     }
-                    localVar.put(TempObject.getString("value"), tip);
-                    SymbolTable.put(TempObject.getString("value"), Arrays.asList(tip));
+                    if (!isList) {
+                        localVar.put(TempObject.getString("value"), tip);
+                        SymbolTable.put(TempObject.getString("value"), Arrays.asList(tip));
+                    } else {
+                        localVar.put(TempObject.getString("value"), "list");
+                        SymbolTable.put(TempObject.getString("value"), Arrays.asList("list"));
+                        ArrayTable.put(TempObject.getString("value"), Arrays.asList(tip, "-1"));
+                    }
                     line += TempObject.getString("value");
                     TempObject = TokenStream.Next();
                     if (!TempObject.getString("value").equals(",") && !TempObject.getString("value").equals(")")) {
@@ -127,6 +145,7 @@ public class Converter {
                     if (TempObject.getString("value").equals(",")) {
                         TempObject = TokenStream.Next();
                     }
+                    isList = false;
                 }
                 TempObject = TokenStream.Next();
                 if (!TempObject.getString("value").equals("begin")) {
@@ -153,6 +172,7 @@ public class Converter {
                 }
                 localVar.clear();
                 SymbolTable.clear();
+                ArrayTable.clear();
 
                 FunctionReturnType = "";
                 FunctionReturnSatisfied = false;
@@ -199,6 +219,13 @@ public class Converter {
                         throw new Exception();
                     }
                     TempObject = TokenStream.Next();
+                    if (TempObject.getString("value").equals("[")) {
+                        TempObject = TokenStream.Next();
+                        if (!TempObject.getString("value").equals("]")) {
+                            throw new Exception();
+                        }
+                        TempObject = TokenStream.Next();
+                    }
                     if (!TempObject.getString("type").equals("var")) {
                         throw new Exception();
                     }
@@ -242,10 +269,88 @@ public class Converter {
                 break;
             case "var":
                 String var = TempObject.getString("value");
+                // Normal assignments
                 if (TokenStream.Peek().getString("value").equals("=")) {
                     TokenStream.Next();
-                    Output.add(ProcessAssignment(var));
-                } else {
+                    Output.add(ProcessAssignment(var, false, null));
+                } // Array assignments
+                else if (TokenStream.Peek().getString("value").equals("[")) {
+                    TokenStream.Next();
+                    TempObject = TokenStream.Next();
+                    String indice = "";
+                    while (!TempObject.getString("value").equals("]")) {
+                        switch (TempObject.getString("type")) {
+                            case "var":
+                                if (!SymbolTable.containsKey(TempObject.getString("value"))
+                                        || !SymbolTable.get(TempObject.getString("value")).get(0).equals("int")) {
+                                    throw new Exception();
+                                }
+                                indice += TempObject.getString("value") + " ";
+                                break;
+                            case "kw":
+                                if (!FunctionTable.containsKey(TempObject.getString("value"))
+                                        || (!FunctionTable.get(TempObject.getString("value")).contains("int")
+                                        && !FunctionTable.get(TempObject.getString("value")).get(0).equals(""))) {
+                                    throw new Exception();
+                                }
+                                String FunctionName = TempObject.getString("value");
+                                TempObject = TokenStream.Next();
+                                if (!TempObject.getString("value").equals("(")) {
+                                    throw new Exception();
+                                }
+                                if (FunctionTable.get(FunctionName).get(0).equals("")) {
+                                    indice += "(int) ";
+                                }
+                                switch (FunctionName) {
+                                    case "abs":
+                                        indice += "Math.abs";
+                                        break;
+                                    case "pow":
+                                        indice += "Math.pow";
+                                        break;
+                                    case "sqrt":
+                                        indice += "Math.sqrt";
+                                        break;
+                                    case "round":
+                                        indice += "Math.round";
+                                        break;
+                                    case "trunc":
+                                        indice += "Math.ceil";
+                                        break;
+                                    default:
+                                        indice += FunctionName;
+                                }
+                                indice += ProcessParantheses() + " ";
+                                break;
+                            case "num":
+                                if (!TempObject.getString("subtype").equals("int")) {
+                                    throw new Exception();
+                                }
+                                indice += TempObject.getString("value") + " ";
+                                break;
+                            case "punc":
+                                if (!TempObject.getString("value").equals("(")) {
+                                    throw new Exception();
+                                }
+                                indice += ProcessParantheses() + " ";
+                                break;
+                            case "op":
+                                if (!"+-*/".contains(TempObject.getString("value"))) {
+                                    throw new Exception();
+                                }
+                                indice += TempObject.getString("value") + " ";
+                                break;
+                            default:
+                                throw new Exception();
+                        }
+                        TempObject = TokenStream.Next();
+                    }
+                    if (!(TempObject = TokenStream.Next()).getString("value").equals("=")) {
+                        throw new Exception();
+                    }
+                    Output.add(ProcessAssignment(var, true, indice.substring(0, indice.length() - 1)));
+                } // No assignments?
+                else {
                     Output.add(TempObject.getString("value") + " ");
                 }
                 break;
@@ -293,9 +398,9 @@ public class Converter {
         return output;
     }
 
-    // TODO: Hata kontrolleri, e.g. "a = b +"
-    private String ProcessAssignment(String var) throws Exception {
-        String output = var + " = ";
+    // TODO
+    private String ProcessAssignment(String var, boolean IsArrayAssignment, String indice) throws Exception {
+        String output = var + ((IsArrayAssignment) ? "[" + indice + "]" : "") + " = ";
         boolean doesExist = SymbolTable.containsKey(var);
         boolean typeAssigned = false;
         String NumberType = "";
@@ -356,12 +461,12 @@ public class Converter {
                     if (doesExist) {
                         // but not of the same type
                         if ((SymbolTable.get(var).get(0).equals("str")
-                            || SymbolTable.get(TempObject.getString("value")).get(0).equals("str"))
-                            && !SymbolTable.get(var).get(0).equals(SymbolTable.get(TempObject.getString("value")).get(0))) {
+                                || SymbolTable.get(TempObject.getString("value")).get(0).equals("str"))
+                                && !SymbolTable.get(var).get(0).equals(SymbolTable.get(TempObject.getString("value")).get(0))) {
                             throw new Exception();
                         }
                         if (NumberType.equals("int")
-                            && SymbolTable.get(TempObject.getString("value")).get(0).equals("float")) {
+                                && SymbolTable.get(TempObject.getString("value")).get(0).equals("float")) {
                             output = "float" + output.substring(3, output.length());
                             SymbolTable.put(var, Arrays.asList("float"));
                             NumberType = "float";
@@ -417,7 +522,67 @@ public class Converter {
                     throw new Exception();
                 }
                 output += "\"" + TempObject.getString("value") + "\"";
+            } // Lists
+            else if (TempObject.getString("type").equals("punc")) {
+                if (!TempObject.getString("value").equals("[")) {
+                    throw new Exception();
+                }
+                TempObject = TokenStream.Next();
+                if (!types.contains(TempObject.getString("value"))
+                        || TempObject.getString("value").equals("none")) {
+                    throw new Exception();
+                }
+                String arrayType = TempObject.getString("value");
+                if (doesExist) {
+                    if (!SymbolTable.get(var).get(0).equals("list")
+                            || !ArrayTable.get(var).get(0).equals(arrayType)) {
+                        throw new Exception();
+                    }
+                } else {
+                    output = ((arrayType.equals("str") ? "String" : arrayType))
+                            + "[] " + output;
+                }
+                TempObject = TokenStream.Next();
+                if (!TempObject.getString("value").equals(",")) {
+                    throw new Exception();
+                }
+                TempObject = TokenStream.Next();
+                if (TempObject.getString("value").equals("]")) {
+                    throw new Exception();
+                }
+                // TODO
+                while (!TempObject.getString("value").equals("]")) {
+                    switch (TempObject.getString("type")) {
+                        case "kw":
+                            break;
+                        case "num":
+                            break;
+                        case "op":
+                            break;
+                        case "punc":
+                            break;
+                        default:
+                            throw new Exception();
+                    }
+                    
+                    if (!TempObject.getString("type").equals("num")
+                            && !TempObject.getString("subtype").equals("int")) {
+                        throw new Exception();
+                    }
+                }
 
+                if (!TokenStream.Peek().getString("value").equals("]")) {
+                    throw new Exception();
+                }
+                ArrayTable.put(var, Arrays.asList(arrayType, TempObject.getString("value")));
+                if (!doesExist) {
+                    SymbolTable.put(var, Arrays.asList("list"));
+                }
+                output += "new "
+                        + ((arrayType.equals("str") ? "String" : arrayType))
+                        + "[" + TempObject.getString("value") + "]";
+
+                TempObject = TokenStream.Next();
             } else {
                 throw new Exception();
             }
@@ -862,7 +1027,7 @@ public class Converter {
                     }
                     if (!FunctionReturnType.equals("str")) {
                         if (!FunctionTable.get(TempObject.getString("value")).contains(FunctionReturnType)
-                            && !FunctionTable.get(TempObject.getString("value")).contains("str")) {
+                                && !FunctionTable.get(TempObject.getString("value")).contains("str")) {
                             line += "(" + FunctionReturnType + ") ";
                         } else if (FunctionTable.get(TempObject.getString("value")).contains("str")) {
                             throw new Exception();
