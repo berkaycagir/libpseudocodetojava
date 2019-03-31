@@ -51,7 +51,7 @@ public class Converter {
     private boolean FunctionReturnSatisfied;
     private File OutputFile;
     private List<String> types = Arrays.asList("str", "int", "float", "none", "List");
-    private HashMap<String, List<String>> SymbolTable = new HashMap<>();
+    private HashMap<String, String> SymbolTable = new HashMap<>();
     private HashMap<String, String> ArrayTable = new HashMap<>();
     private HashMap<String, List<String>> FunctionTable = new HashMap<String, List<String>>() {
         {
@@ -130,10 +130,10 @@ public class Converter {
                     }
                     if (!isList) {
                         localVar.put(TempObject.getString("value"), tip);
-                        SymbolTable.put(TempObject.getString("value"), Arrays.asList(tip));
+                        SymbolTable.put(TempObject.getString("value"), tip);
                     } else {
                         localVar.put(TempObject.getString("value"), "list");
-                        SymbolTable.put(TempObject.getString("value"), Arrays.asList("list"));
+                        SymbolTable.put(TempObject.getString("value"), "list");
                         ArrayTable.put(TempObject.getString("value"), tip);
                     }
                     line += TempObject.getString("value");
@@ -261,6 +261,85 @@ public class Converter {
         TokenStream.reset();
     }
 
+    private String ProcessArrayIndice() throws Exception {
+        JSONObject TempObject = TokenStream.Next();
+        if (TempObject.getString("value").equals("]")) {
+            throw new Exception();
+        }
+        String indice = "";
+        while (!TempObject.getString("value").equals("]")) {
+            switch (TempObject.getString("type")) {
+                case "var":
+                    if (!SymbolTable.containsKey(TempObject.getString("value"))
+                            || !SymbolTable.get(TempObject.getString("value")).equals("int")) {
+                        throw new Exception();
+                    }
+                    indice += TempObject.getString("value") + " ";
+                    break;
+                case "kw":
+                    if (!FunctionTable.containsKey(TempObject.getString("value"))
+                            || (!FunctionTable.get(TempObject.getString("value")).contains("int")
+                            && !FunctionTable.get(TempObject.getString("value")).get(0).equals(""))) {
+                        throw new Exception();
+                    }
+                    String FunctionName = TempObject.getString("value");
+                    TempObject = TokenStream.Next();
+                    if (!TempObject.getString("value").equals("(")) {
+                        throw new Exception();
+                    }
+                    if (FunctionTable.get(FunctionName).get(0).equals("")) {
+                        indice += "(int) ";
+                    }
+                    switch (FunctionName) {
+                        case "abs":
+                            indice += "Math.abs";
+                            break;
+                        case "pow":
+                            indice += "Math.pow";
+                            break;
+                        case "sqrt":
+                            indice += "Math.sqrt";
+                            break;
+                        case "round":
+                            indice += "Math.round";
+                            break;
+                        case "trunc":
+                            indice += "Math.ceil";
+                            break;
+                        default:
+                            indice += FunctionName;
+                    }
+                    indice += ProcessParantheses() + " ";
+                    break;
+                case "num":
+                    if (!TempObject.getString("subtype").equals("int")) {
+                        throw new Exception();
+                    }
+                    indice += TempObject.getString("value") + " ";
+                    break;
+                case "punc":
+                    if (!TempObject.getString("value").equals("(")) {
+                        throw new Exception();
+                    }
+                    indice += ProcessParantheses() + " ";
+                    break;
+                case "op":
+                    if (!"+-*/".contains(TempObject.getString("value"))) {
+                        throw new Exception();
+                    }
+                    if (TokenStream.Peek().getString("value").equals("]")) {
+                        throw new Exception();
+                    }
+                    indice += TempObject.getString("value") + " ";
+                    break;
+                default:
+                    throw new Exception();
+            }
+            TempObject = TokenStream.Next();
+        }
+        return indice.substring(0, indice.length() - 1);
+    }
+
     private List<String> ProcessType(JSONObject TempObject) throws Exception {
         List<String> Output = new ArrayList<>();
         switch (TempObject.getString("type")) {
@@ -276,82 +355,11 @@ public class Converter {
                 } // Array assignments
                 else if (TokenStream.Peek().getString("value").equals("[")) {
                     TokenStream.Next();
-                    TempObject = TokenStream.Next();
-                    String indice = "";
-                    while (!TempObject.getString("value").equals("]")) {
-                        switch (TempObject.getString("type")) {
-                            case "var":
-                                if (!SymbolTable.containsKey(TempObject.getString("value"))
-                                        || !SymbolTable.get(TempObject.getString("value")).get(0).equals("int")) {
-                                    throw new Exception();
-                                }
-                                indice += TempObject.getString("value") + " ";
-                                break;
-                            case "kw":
-                                if (!FunctionTable.containsKey(TempObject.getString("value"))
-                                        || (!FunctionTable.get(TempObject.getString("value")).contains("int")
-                                        && !FunctionTable.get(TempObject.getString("value")).get(0).equals(""))) {
-                                    throw new Exception();
-                                }
-                                String FunctionName = TempObject.getString("value");
-                                TempObject = TokenStream.Next();
-                                if (!TempObject.getString("value").equals("(")) {
-                                    throw new Exception();
-                                }
-                                if (FunctionTable.get(FunctionName).get(0).equals("")) {
-                                    indice += "(int) ";
-                                }
-                                switch (FunctionName) {
-                                    case "abs":
-                                        indice += "Math.abs";
-                                        break;
-                                    case "pow":
-                                        indice += "Math.pow";
-                                        break;
-                                    case "sqrt":
-                                        indice += "Math.sqrt";
-                                        break;
-                                    case "round":
-                                        indice += "Math.round";
-                                        break;
-                                    case "trunc":
-                                        indice += "Math.ceil";
-                                        break;
-                                    default:
-                                        indice += FunctionName;
-                                }
-                                indice += ProcessParantheses() + " ";
-                                break;
-                            case "num":
-                                if (!TempObject.getString("subtype").equals("int")) {
-                                    throw new Exception();
-                                }
-                                indice += TempObject.getString("value") + " ";
-                                break;
-                            case "punc":
-                                if (!TempObject.getString("value").equals("(")) {
-                                    throw new Exception();
-                                }
-                                indice += ProcessParantheses() + " ";
-                                break;
-                            case "op":
-                                if (!"+-*/".contains(TempObject.getString("value"))) {
-                                    throw new Exception();
-                                }
-                                if (TokenStream.Peek().getString("value").equals("]")) {
-                                    throw new Exception();
-                                }
-                                indice += TempObject.getString("value") + " ";
-                                break;
-                            default:
-                                throw new Exception();
-                        }
-                        TempObject = TokenStream.Next();
-                    }
+                    String indice = ProcessArrayIndice();
                     if (!(TempObject = TokenStream.Next()).getString("value").equals("=")) {
                         throw new Exception();
                     }
-                    Output.add(ProcessAssignment(var, true, indice.substring(0, indice.length() - 1)));
+                    Output.add(ProcessAssignment(var, true, indice));
                 } // No assignments?
                 else {
                     Output.add(TempObject.getString("value") + " ");
@@ -407,7 +415,6 @@ public class Converter {
         boolean doesExist = SymbolTable.containsKey(var);
         boolean typeAssigned = false;
         String NumberType = "";
-        float newValue = 0; // Islem icin deger tutma yapilacak
         JSONObject TempObject = TokenStream.Next();
         while (!TempObject.getString("type").equals("eol")) {
             // Nested statements
@@ -458,71 +465,146 @@ public class Converter {
                 output += ProcessKeywords(TempObject);
             } // Variables
             else if (TempObject.getString("type").equals("var")) {
+                boolean IsArrayOperand = TokenStream.Peek().getString("value").equals("[");
                 // if right hand variable exists
                 if (SymbolTable.containsKey(TempObject.getString("value"))) {
-                    // if left hand variable exists
-                    if (doesExist) {
-                        // but not of the same type
-                        if ((SymbolTable.get(var).get(0).equals("str")
-                                || SymbolTable.get(TempObject.getString("value")).get(0).equals("str"))
-                                && !SymbolTable.get(var).get(0).equals(SymbolTable.get(TempObject.getString("value")).get(0))) {
-                            throw new Exception();
-                        }
-                        if (NumberType.equals("int")
-                                && SymbolTable.get(TempObject.getString("value")).get(0).equals("float")) {
-                            output = "float" + output.substring(3, output.length());
-                            SymbolTable.put(var, Arrays.asList("float"));
-                            NumberType = "float";
-                        }
-                    } // if left hand variable does not exist and has no type assigned
-                    else if (!doesExist && !typeAssigned) {
-                        // assign the responding type
-                        switch (SymbolTable.get(TempObject.getString("value")).get(0)) {
-                            case "int":
-                            case "float":
-                                output = SymbolTable.get(TempObject.getString("value")).get(0) + " " + output;
-                                NumberType = SymbolTable.get(TempObject.getString("value")).get(0);
-                                break;
-                            case "str":
-                                output = "String " + output;
-                                break;
-                            default:
+                    // Array operand
+                    if (IsArrayOperand) {
+                        String ArrayName = TempObject.getString("value");
+                        TokenStream.Next();
+                        String operand = ArrayName + "[" + ProcessArrayIndice() + "]";
+                        if (IsArrayAssignment) {
+                            if (!ArrayTable.get(var).equals(ArrayTable.get(ArrayName))) {
                                 throw new Exception();
+                            }
+                            output += operand;
+                        } else {
+                            // if left hand variable exists
+                            if (doesExist) {
+                                // but not of the same type
+                                if ((SymbolTable.get(var).equals("str") || ArrayTable.get(ArrayName).equals("str"))
+                                        && !SymbolTable.get(var).equals(ArrayTable.get(ArrayName))) {
+                                    throw new Exception();
+                                }
+                                if (NumberType.equals("int")
+                                        && ArrayTable.get(ArrayName).equals("float")) {
+                                    // TODO 1
+                                    output = "float" + output.substring(3, output.length());
+                                    SymbolTable.put(var, "float");
+                                    NumberType = "float";
+                                }
+                            } // if left hand variable does not exist and has no type assigned
+                            else if (!doesExist && !typeAssigned) {
+                                // assign the responding type
+                                switch (ArrayTable.get(ArrayName)) {
+                                    case "int":
+                                    case "float":
+                                        output = ArrayTable.get(ArrayName) + " " + output;
+                                        NumberType = ArrayTable.get(ArrayName);
+                                        break;
+                                    case "str":
+                                        output = "String " + output;
+                                        break;
+                                    default:
+                                        throw new Exception();
+                                }
+                                typeAssigned = true;
+                                doesExist = true;
+                                SymbolTable.put(var, ArrayTable.get(ArrayName));
+                            }
+                            output += operand;
                         }
-                        typeAssigned = true;
-                        doesExist = true;
-                        SymbolTable.put(var, SymbolTable.get(TempObject.getString("value")));
+                    } // Variable operand
+                    else {
+                        if (IsArrayAssignment) {
+                            if (!ArrayTable.get(var).equals(TempObject.getString("value"))) {
+                                throw new Exception();
+                            }
+                            output += TempObject.getString("value");
+                        } else {
+                            // if left hand variable exists
+                            if (doesExist) {
+                                // but not of the same type
+                                if ((SymbolTable.get(var).equals("str")
+                                        || SymbolTable.get(TempObject.getString("value")).equals("str"))
+                                        && !SymbolTable.get(var).equals(SymbolTable.get(TempObject.getString("value")))) {
+                                    throw new Exception();
+                                }
+                                if (NumberType.equals("int")
+                                        && SymbolTable.get(TempObject.getString("value")).equals("float")) {
+                                    output = "float" + output.substring(3, output.length());
+                                    SymbolTable.put(var, "float");
+                                    NumberType = "float";
+                                }
+                            } // if left hand variable does not exist and has no type assigned
+                            else if (!doesExist && !typeAssigned) {
+                                // assign the responding type
+                                switch (SymbolTable.get(TempObject.getString("value"))) {
+                                    case "int":
+                                    case "float":
+                                        output = SymbolTable.get(TempObject.getString("value")) + " " + output;
+                                        NumberType = SymbolTable.get(TempObject.getString("value"));
+                                        break;
+                                    case "str":
+                                        output = "String " + output;
+                                        break;
+                                    default:
+                                        throw new Exception();
+                                }
+                                typeAssigned = true;
+                                doesExist = true;
+                                SymbolTable.put(var, SymbolTable.get(TempObject.getString("value")));
+                            }
+                            output += TempObject.getString("value");
+                        }
                     }
-                    output += TempObject.getString("value");
                 } // if variable does not exist
                 else {
                     throw new Exception();
                 }
             } // Numbers
             else if (TempObject.getString("type").equals("num")) {
-                if (TempObject.getString("value").contains(".")) {
-                    if (!doesExist) {
-                        SymbolTable.put(var, Arrays.asList("float", TempObject.getString("value")));
-                        output = "float " + output;
-                    } else if (SymbolTable.get(var).get(0).equals("str")) {
+                if (IsArrayAssignment) {
+                    if (ArrayTable.get(var).equals("int")
+                            && TempObject.getString("subtype").equals("float")) {
+                        output += "(int) ";
+                    } else if (ArrayTable.get(var).equals("float")
+                            && TempObject.getString("subtype").equals("int")) {
+                        output += "(float) ";
+                    } else if (!ArrayTable.get(var).equals(TempObject.getString("subtype"))) {
                         throw new Exception();
                     }
                 } else {
-                    if (!doesExist) {
-                        SymbolTable.put(var, Arrays.asList("int", TempObject.getString("value")));
-                        output = "int " + output;
-                    } else if (SymbolTable.get(var).get(0).equals("str")) {
-                        throw new Exception();
+                    if (TempObject.getString("subtype").equals("float")) {
+                        if (!doesExist) {
+                            SymbolTable.put(var, "float");
+                            output = "float " + output;
+                        } else if (SymbolTable.get(var).equals("str")) {
+                            throw new Exception();
+                        }
+                    } else {
+                        if (!doesExist) {
+                            SymbolTable.put(var, "int");
+                            output = "int " + output;
+                        } else if (SymbolTable.get(var).equals("str")) {
+                            throw new Exception();
+                        }
                     }
                 }
                 output += TempObject.getString("value") + ((TempObject.getString("subtype").equals("float")) ? "f" : "");
             } // Strings
             else if (TempObject.getString("type").equals("str")) {
-                if (!doesExist) {
-                    SymbolTable.put(var, Arrays.asList("str", TempObject.getString("value")));
-                    output = "String " + output;
-                } else if (!SymbolTable.get(var).get(0).equals("str")) {
-                    throw new Exception();
+                if (IsArrayAssignment) {
+                    if (!ArrayTable.get(var).equals(TempObject.getString("type"))) {
+                        throw new Exception();
+                    }
+                } else {
+                    if (!doesExist) {
+                        SymbolTable.put(var, "str");
+                        output = "String " + output;
+                    } else if (!SymbolTable.get(var).equals("str")) {
+                        throw new Exception();
+                    }
                 }
                 output += "\"" + TempObject.getString("value") + "\"";
             } // Lists
@@ -531,13 +613,16 @@ public class Converter {
                     throw new Exception();
                 }
                 TempObject = TokenStream.Next();
+                if (TempObject.getString("value").equals("]")) {
+                    throw new Exception();
+                }
                 if (!types.contains(TempObject.getString("value"))
                         || TempObject.getString("value").equals("none")) {
                     throw new Exception();
                 }
                 String arrayType = TempObject.getString("value");
                 if (doesExist) {
-                    if (!SymbolTable.get(var).get(0).equals("list")
+                    if (!SymbolTable.get(var).equals("list")
                             || !ArrayTable.get(var).equals(arrayType)) {
                         throw new Exception();
                     }
@@ -620,7 +705,7 @@ public class Converter {
                 }
                 ArrayTable.put(var, arrayType);
                 if (!doesExist) {
-                    SymbolTable.put(var, Arrays.asList("list"));
+                    SymbolTable.put(var, "list");
                 }
                 output += "new "
                         + ((arrayType.equals("str") ? "String" : arrayType))
@@ -771,10 +856,21 @@ public class Converter {
         String var = TempObject.getString("value");
         // Check if var exists (and has a compatible value)
         if (SymbolTable.containsKey(var)) {
-            if (SymbolTable.get(var).get(0).equals("int")) {
-                line += var + " = ";
+            if (SymbolTable.get(var).equals("list")) {
+                if (!TokenStream.Peek().getString("value").equals("[")) {
+                    throw new Exception();
+                }
+                if (!ArrayTable.get(var).equals("int")) {
+                    throw new Exception();
+                }
+                TokenStream.Next();
+                line += var + "[" + ProcessArrayIndice() + "] = ";
             } else {
-                throw new Exception();
+                if (SymbolTable.get(var).equals("int")) {
+                    line += var + " = ";
+                } else {
+                    throw new Exception();
+                }
             }
         } else {
             line += "int " + var + " = ";
@@ -789,7 +885,7 @@ public class Converter {
         if ((TempObject = TokenStream.Next()).getString("value").equals("to")) {
             throw new Exception();
         }
-
+        // TODO 1
         Expression ValueExpression = new Expression("");
         String ValueString = "";
         while (!TempObject.getString("value").equals("to")) {
@@ -896,12 +992,12 @@ public class Converter {
                 break;
             case "var":
                 if (!SymbolTable.containsKey(TempObject.getString("value"))
-                        || !SymbolTable.get(TempObject.getString("value")).get(0).equals("int")) {
+                        || !SymbolTable.get(TempObject.getString("value")).equals("int")) {
                     throw new Exception();
                 }
                 ValueString += TempObject.getString("value");
-                ValueExpression.addArguments(new Argument(TempObject.getString("value"),
-                        SymbolTable.get(TempObject.getString("value")).get(1)));
+
+                ValueExpression.addArguments(new Argument(TempObject.getString("value")));
                 break;
             default:
                 throw new Exception();
@@ -913,7 +1009,7 @@ public class Converter {
         String output = "(";
         JSONObject TempObject = TokenStream.Next();
         if (TempObject.getString("type").equals("punc")
-                && TempObject.getString("value").equals("(")) {
+                && TempObject.getString("value").equals(")")) {
             return output + ")";
         }
 
@@ -968,7 +1064,17 @@ public class Converter {
                     if (!SymbolTable.containsKey(TempObject.getString("value"))) {
                         throw new Exception();
                     }
-                    output += TempObject.getString("value");
+                    if (TokenStream.Peek().getString("value").equals("[")) {
+                        if (!SymbolTable.get(TempObject.getString("value")).equals("list")) {
+                            throw new Exception();
+                        }
+                        String ArrayName = TempObject.getString("value");
+                        TokenStream.Next();
+                        String operand = ArrayName + "[" + ProcessArrayIndice() + "]";
+                        output += operand;
+                    } else {
+                        output += TempObject.getString("value");
+                    }
                     break;
                 case "num":
                     output += TempObject.getString("value");
@@ -1056,11 +1162,11 @@ public class Converter {
                 case "var":
                     if (FunctionReturnType.equals("int")
                             || FunctionReturnType.equals("float")) {
-                        if (!SymbolTable.get(TempObject.getString("value")).get(0).equals(FunctionReturnType)) {
+                        if (!SymbolTable.get(TempObject.getString("value")).equals(FunctionReturnType)) {
                             throw new Exception();
                         }
                     }
-                    ParameterList.add(SymbolTable.get(TempObject.getString("value")).get(0));
+                    ParameterList.add(SymbolTable.get(TempObject.getString("value")));
                     line += TempObject.getString("value") + " ";
                     break;
                 case "kw":
