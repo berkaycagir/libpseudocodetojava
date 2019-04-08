@@ -1046,7 +1046,6 @@ public class Converter {
                                     && FunctionTable.get(TempObject.getString("value")).get(0).equals("")) {
                                 ValueString += "(int) ";
                             }
-                            TokenStream.Next();
                             ValueString += TempObject.getString("value") + ProcessParantheses() + " ";
                     }
                     break;
