@@ -23,6 +23,7 @@
  */
 package parser;
 
+import com.google.common.io.CharSource;
 import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -32,11 +33,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import javafx.util.Pair;
 import org.json.JSONObject;
-import org.mariuszgromada.math.mxparser.Argument;
-import org.mariuszgromada.math.mxparser.Expression;
+import com.google.googlejavaformat.java.Formatter;
+import java.io.IOException;
+import java.io.Reader;
 
 /**
  *
@@ -71,6 +71,7 @@ public class Converter {
 
     public void Convert(String FilePath) throws Exception {
         List<String> array = new ArrayList<>();
+        array.add("public class Pseudocode {");
         ProcessMethods();
         JSONObject TempObject = TokenStream.Next();
         Path file = Paths.get(FilePath);
@@ -183,7 +184,8 @@ public class Converter {
                 TempObject = TokenStream.Next();
             }
         }
-        Files.write(file, array, Charset.forName("UTF-8"));
+        array.add("}");
+        Files.write(file, Arrays.asList(new Formatter().formatSource(String.join("\n", array))), Charset.forName("UTF-8"));
     }
 
     private void ProcessMethods() throws Exception {
