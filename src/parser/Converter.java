@@ -23,7 +23,6 @@
  */
 package parser;
 
-import com.google.common.io.CharSource;
 import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -87,21 +86,21 @@ public class Converter {
                 // type
                 TempObject = TokenStream.Next();
                 if (!types.contains(TempObject.getString("value"))) {
-                    throw new Exception();
+                    throw new Exception("Undefined type on line: " + TokenStream.GetCurrentLine());
                 }
                 FunctionReturnType = TempObject.getString("value");
                 line += (FunctionReturnType.equals("none")) ? "void " : (FunctionReturnType.equals("str")) ? "String " : FunctionReturnType + " ";
                 // method name
                 TempObject = TokenStream.Next();
                 if (!FunctionTable.containsKey(TempObject.getString("value"))) {
-                    throw new Exception();
+                    throw new Exception("Undefined method on line: " + TokenStream.GetCurrentLine());
                 } else {
                     line += TempObject.getString("value");
                 }
                 // paranthesis opening
                 TempObject = TokenStream.Next();
                 if (!TempObject.getString("value").equals("(")) {
-                    throw new Exception();
+                    throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
                 }
                 line += TempObject.getString("value");
                 // parameters
@@ -109,14 +108,14 @@ public class Converter {
                 HashMap<String, String> localVar = new HashMap<>();
                 while (!TempObject.getString("value").equals(")")) {
                     if (!types.contains(TempObject.getString("value"))) {
-                        throw new Exception();
+                        throw new Exception("Undefined type on line: " + TokenStream.GetCurrentLine());
                     }
                     tip = TempObject.getString("value");
                     TempObject = TokenStream.Next();
                     if (TempObject.getString("value").equals("[")) {
                         TempObject = TokenStream.Next();
                         if (!TempObject.getString("value").equals("]")) {
-                            throw new Exception();
+                            throw new Exception("Missing ] on line: " + TokenStream.GetCurrentLine());
                         }
                         TempObject = TokenStream.Next();
                         isList = true;
@@ -124,10 +123,10 @@ public class Converter {
                     line += ((tip.equals("str")) ? "String" : tip) + ((isList) ? "[]" : "") + " ";
 
                     if (!TempObject.getString("type").equals("var")) {
-                        throw new Exception();
+                        throw new Exception("Missing variable on line: " + TokenStream.GetCurrentLine());
                     }
                     if (localVar.containsKey(TempObject.getString("value"))) {
-                        throw new Exception();
+                        throw new Exception("Variable already exists on line: " + TokenStream.GetCurrentLine());
                     }
                     if (!isList) {
                         localVar.put(TempObject.getString("value"), tip);
@@ -140,7 +139,7 @@ public class Converter {
                     line += TempObject.getString("value");
                     TempObject = TokenStream.Next();
                     if (!TempObject.getString("value").equals(",") && !TempObject.getString("value").equals(")")) {
-                        throw new Exception();
+                        throw new Exception("Missing comma or paranthesis on line: " + TokenStream.GetCurrentLine());
                     }
                     line += (TempObject.getString("value").equals(",")) ? ", " : "";
                     if (TempObject.getString("value").equals(",")) {
@@ -150,12 +149,12 @@ public class Converter {
                 }
                 TempObject = TokenStream.Next();
                 if (!TempObject.getString("value").equals("begin")) {
-                    throw new Exception();
+                    throw new Exception("Missing keyword \"begin\" on line: " + TokenStream.GetCurrentLine());
                 }
                 line += ") {";
                 TempObject = TokenStream.Next();
                 if (!TempObject.getString("type").equals("eol")) {
-                    throw new Exception();
+                    throw new Exception("Missing end of line on line: " + TokenStream.GetCurrentLine());
                 }
                 TempObject = TokenStream.Next();
                 array.add(line);
@@ -169,7 +168,7 @@ public class Converter {
                 }
                 if (!FunctionReturnType.equals("none")
                         && !FunctionReturnSatisfied) {
-                    throw new Exception();
+                    throw new Exception("Function didn't return on line: " + TokenStream.GetCurrentLine());
                 }
                 localVar.clear();
                 SymbolTable.clear();
@@ -199,41 +198,41 @@ public class Converter {
                 // type
                 TempObject = TokenStream.Next();
                 if (!types.contains(TempObject.getString("value"))) {
-                    throw new Exception();
+                    throw new Exception("Unknown type on line: " + TokenStream.GetCurrentLine());
                 }
                 type = TempObject.getString("value");
                 // method name
                 TempObject = TokenStream.Next();
                 if (TokenStream.KeywordExists(TempObject.getString("value"))) {
-                    throw new Exception();
+                    throw new Exception("Method named as a keyword on line: " + TokenStream.GetCurrentLine());
                 } else {
                     name = TempObject.getString("value");
                 }
                 // paranthesis opening
                 TempObject = TokenStream.Next();
                 if (!TempObject.getString("value").equals("(")) {
-                    throw new Exception();
+                    throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
                 }
                 // parameters
                 TempObject = TokenStream.Next();
                 while (!TempObject.getString("value").equals(")")) {
                     if (!types.contains(TempObject.getString("value"))) {
-                        throw new Exception();
+                        throw new Exception("Unknown type on line: " + TokenStream.GetCurrentLine());
                     }
                     TempObject = TokenStream.Next();
                     if (TempObject.getString("value").equals("[")) {
                         TempObject = TokenStream.Next();
                         if (!TempObject.getString("value").equals("]")) {
-                            throw new Exception();
+                            throw new Exception("Missing ] on line: " + TokenStream.GetCurrentLine());
                         }
                         TempObject = TokenStream.Next();
                     }
                     if (!TempObject.getString("type").equals("var")) {
-                        throw new Exception();
+                        throw new Exception("Missing variable on line: " + TokenStream.GetCurrentLine());
                     }
                     TempObject = TokenStream.Next();
                     if (!TempObject.getString("value").equals(",") && !TempObject.getString("value").equals(")")) {
-                        throw new Exception();
+                        throw new Exception("Missing comma or paranthesis on line: " + TokenStream.GetCurrentLine());
                     }
                     if (TempObject.getString("value").equals(",")) {
                         TempObject = TokenStream.Next();
@@ -241,7 +240,7 @@ public class Converter {
                 }
                 TempObject = TokenStream.Next();
                 if (!TempObject.getString("value").equals("begin")) {
-                    throw new Exception();
+                    throw new Exception("Missing keyword \"begin\" on line: " + TokenStream.GetCurrentLine());
                 }
                 TempObject = TokenStream.Next();
                 boolean endAlg = false;
@@ -253,7 +252,7 @@ public class Converter {
                     }
                 }
                 if (!endAlg) {
-                    throw new Exception();
+                    throw new Exception("Missing keyword \"endalgorithm\" on line: " + TokenStream.GetCurrentLine());
                 }
                 TokenStream.AddKeyword(name);
                 FunctionTable.put(name, Arrays.asList(type));
@@ -266,7 +265,7 @@ public class Converter {
     private String ProcessArrayIndice() throws Exception {
         JSONObject TempObject = TokenStream.Next();
         if (TempObject.getString("value").equals("]")) {
-            throw new Exception();
+            throw new Exception("Prematurely closed [ on line: " + TokenStream.GetCurrentLine());
         }
         String indice = "";
         while (!TempObject.getString("value").equals("]")) {
@@ -274,7 +273,7 @@ public class Converter {
                 case "var":
                     if (!SymbolTable.containsKey(TempObject.getString("value"))
                             || !SymbolTable.get(TempObject.getString("value")).equals("int")) {
-                        throw new Exception();
+                        throw new Exception("Not a variable or not an integer on line: " + TokenStream.GetCurrentLine());
                     }
                     indice += TempObject.getString("value") + " ";
                     break;
@@ -282,12 +281,12 @@ public class Converter {
                     if (!FunctionTable.containsKey(TempObject.getString("value"))
                             || (!FunctionTable.get(TempObject.getString("value")).contains("int")
                             && !FunctionTable.get(TempObject.getString("value")).get(0).equals(""))) {
-                        throw new Exception();
+                        throw new Exception("Not a function or does not return integer on line: " + TokenStream.GetCurrentLine());
                     }
                     String FunctionName = TempObject.getString("value");
                     TempObject = TokenStream.Next();
                     if (!TempObject.getString("value").equals("(")) {
-                        throw new Exception();
+                        throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
                     }
                     if (FunctionTable.get(FunctionName).get(0).equals("")) {
                         indice += "(int) ";
@@ -315,27 +314,27 @@ public class Converter {
                     break;
                 case "num":
                     if (!TempObject.getString("subtype").equals("int")) {
-                        throw new Exception();
+                        throw new Exception("Wrong number type on line: " + TokenStream.GetCurrentLine());
                     }
                     indice += TempObject.getString("value") + " ";
                     break;
                 case "punc":
                     if (!TempObject.getString("value").equals("(")) {
-                        throw new Exception();
+                        throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
                     }
                     indice += ProcessParantheses() + " ";
                     break;
                 case "op":
                     if (!"+-*/".contains(TempObject.getString("value"))) {
-                        throw new Exception();
+                        throw new Exception("Unknown operator on line: " + TokenStream.GetCurrentLine());
                     }
                     if (TokenStream.Peek().getString("value").equals("]")) {
-                        throw new Exception();
+                        throw new Exception("Prematurely closed [ on line: " + TokenStream.GetCurrentLine());
                     }
                     indice += TempObject.getString("value") + " ";
                     break;
                 default:
-                    throw new Exception();
+                    throw new Exception("Unknown keyword on line: " + TokenStream.GetCurrentLine());
             }
             TempObject = TokenStream.Next();
         }
@@ -357,12 +356,12 @@ public class Converter {
                 } // Array assignments
                 else if (TokenStream.Peek().getString("value").equals("[")) {
                     if (!SymbolTable.get(var).equals("list")) {
-                        throw new Exception();
+                        throw new Exception("Not an array on line: " + TokenStream.GetCurrentLine());
                     }
                     TokenStream.Next();
                     String indice = ProcessArrayIndice();
                     if (!(TempObject = TokenStream.Next()).getString("value").equals("=")) {
-                        throw new Exception();
+                        throw new Exception("Missing = on line: " + TokenStream.GetCurrentLine());
                     }
                     Output.add(ProcessAssignment(var, true, indice));
                 } // No assignments?
@@ -401,7 +400,7 @@ public class Converter {
         boolean ContainsString = false;
         JSONObject TempObject = TokenStream.Next();
         if (!TempObject.getString("type").equals("punc") && !TempObject.getString("value").equals("(")) {
-            throw new Exception();
+            throw new Exception("Not a punctuation or paranthesis on line: " + TokenStream.GetCurrentLine());
         }
         if ((TempObject = TokenStream.Next()).getString("value").equals(")")) {
             return output + ");";
@@ -411,7 +410,7 @@ public class Converter {
                 case "var":
                     if (TokenStream.Peek().getString("value").equals("[")) {
                         if (!SymbolTable.get(TempObject.getString("value")).equals("list")) {
-                            throw new Exception();
+                            throw new Exception("Not an array on line: " + TokenStream.GetCurrentLine());
                         }
                         TokenStream.Next();
                         output += TempObject.getString("value") + "[" + ProcessArrayIndice() + "]";
@@ -431,10 +430,10 @@ public class Converter {
                 case "op":
                     // not complete
                     if (!"+-*/".contains(TempObject.getString("value"))) {
-                        throw new Exception();
+                        throw new Exception("Unknown operator on line: " + TokenStream.GetCurrentLine());
                     }
                     if (ContainsString && !TempObject.getString("value").equals("+")) {
-                        throw new Exception();
+                        throw new Exception("Non-applicable operator on strings on line: " + TokenStream.GetCurrentLine());
                     }
                     output += TempObject.getString("value");
                     break;
@@ -442,11 +441,11 @@ public class Converter {
                     if (TempObject.getString("value").equals("(")) {
                         output += ProcessParantheses();
                     } else {
-                        throw new Exception();
+                        throw new Exception("Non-applicable punctuation on line: " + TokenStream.GetCurrentLine());
                     }
                     break;
                 default:
-                    throw new Exception();
+                    throw new Exception("Unknown keyword on line: " + TokenStream.GetCurrentLine());
             }
             TempObject = TokenStream.Next();
         }
@@ -468,7 +467,7 @@ public class Converter {
             } // Operators
             else if (TempObject.getString("type").equals("op")) {
                 if (TokenStream.Peek().getString("value").equals("eol")) {
-                    throw new Exception();
+                    throw new Exception("Premature end of line on line: " + TokenStream.GetCurrentLine());
                 }
                 String op = TempObject.getString("value");
                 switch (op) {
@@ -483,7 +482,7 @@ public class Converter {
                             output += "!=";
                             TokenStream.Next();
                         } else {
-                            throw new Exception();
+                            throw new Exception("! without = on line: " + TokenStream.GetCurrentLine());
                         }
                         break;
                     case "=":
@@ -491,7 +490,7 @@ public class Converter {
                             output += "==";
                             TokenStream.Next();
                         } else {
-                            throw new Exception();
+                            throw new Exception("= without = on line: " + TokenStream.GetCurrentLine());
                         }
                         break;
                     case "<":
@@ -503,7 +502,7 @@ public class Converter {
                         }
                         break;
                     default:
-                        throw new Exception();
+                        throw new Exception("Undefined keyword on line: " + TokenStream.GetCurrentLine());
                 }
             } // Keywords
             else if (TempObject.getString("type").equals("kw")) {
@@ -517,13 +516,13 @@ public class Converter {
                     if (IsArrayOperand) {
                         String ArrayName = TempObject.getString("value");
                         if (!SymbolTable.get(ArrayName).equals("list")) {
-                            throw new Exception();
+                            throw new Exception("Not an array on line: " + TokenStream.GetCurrentLine());
                         }
                         TokenStream.Next();
                         String operand = ArrayName + "[" + ProcessArrayIndice() + "]";
                         if (IsArrayAssignment) {
                             if (!ArrayTable.get(var).equals(ArrayTable.get(ArrayName))) {
-                                throw new Exception();
+                                throw new Exception("Mismatching array types on line: " + TokenStream.GetCurrentLine());
                             }
                             output += operand;
                         } else {
@@ -532,7 +531,7 @@ public class Converter {
                                 // but not of the same type
                                 if ((SymbolTable.get(var).equals("str") || ArrayTable.get(ArrayName).equals("str"))
                                         && !SymbolTable.get(var).equals(ArrayTable.get(ArrayName))) {
-                                    throw new Exception();
+                                    throw new Exception("Mismatching array and variable types on line: " + TokenStream.GetCurrentLine());
                                 }
                                 if (NumberType.equals("int")
                                         && ArrayTable.get(ArrayName).equals("float")) {
@@ -554,7 +553,7 @@ public class Converter {
                                         output = "String " + output;
                                         break;
                                     default:
-                                        throw new Exception();
+                                        throw new Exception("Undefined type on line: " + TokenStream.GetCurrentLine());
                                 }
                                 typeAssigned = true;
                                 doesExist = true;
@@ -566,17 +565,16 @@ public class Converter {
                     else {
                         if (IsArrayAssignment) {
                             if (!ArrayTable.get(var).equals(TempObject.getString("value"))) {
-                                throw new Exception();
+                                throw new Exception("Mismatching variable and array types on line: " + TokenStream.GetCurrentLine());
                             }
                             output += TempObject.getString("value");
                         } else {
                             // if left hand variable exists
                             if (doesExist) {
                                 // but not of the same type
-                                if ((SymbolTable.get(var).equals("str")
-                                        || SymbolTable.get(TempObject.getString("value")).equals("str"))
+                                if ((SymbolTable.get(var).equals("str") || SymbolTable.get(TempObject.getString("value")).equals("str"))
                                         && !SymbolTable.get(var).equals(SymbolTable.get(TempObject.getString("value")))) {
-                                    throw new Exception();
+                                    throw new Exception("Mismatching types on line: " + TokenStream.GetCurrentLine());
                                 }
                                 if (NumberType.equals("int")
                                         && SymbolTable.get(TempObject.getString("value")).equals("float")) {
@@ -597,7 +595,7 @@ public class Converter {
                                         output = "String " + output;
                                         break;
                                     default:
-                                        throw new Exception();
+                                        throw new Exception("Undefined type on line: " + TokenStream.GetCurrentLine());
                                 }
                                 typeAssigned = true;
                                 doesExist = true;
@@ -608,7 +606,7 @@ public class Converter {
                     }
                 } // if variable does not exist
                 else {
-                    throw new Exception();
+                    throw new Exception("Variable does not exist on line: " + TokenStream.GetCurrentLine());
                 }
             } // Numbers
             else if (TempObject.getString("type").equals("num")) {
@@ -620,7 +618,7 @@ public class Converter {
                             && TempObject.getString("subtype").equals("int")) {
                         output += "(float) ";
                     } else if (!ArrayTable.get(var).equals(TempObject.getString("subtype"))) {
-                        throw new Exception();
+                        throw new Exception("Mismatching types on line: " + TokenStream.GetCurrentLine());
                     }
                 } else {
                     if (TempObject.getString("subtype").equals("float")) {
@@ -628,14 +626,14 @@ public class Converter {
                             SymbolTable.put(var, "float");
                             output = "float " + output;
                         } else if (SymbolTable.get(var).equals("str")) {
-                            throw new Exception();
+                            throw new Exception("Mismatching type on line: " + TokenStream.GetCurrentLine());
                         }
                     } else {
                         if (!doesExist) {
                             SymbolTable.put(var, "int");
                             output = "int " + output;
                         } else if (SymbolTable.get(var).equals("str")) {
-                            throw new Exception();
+                            throw new Exception("Mismatching type on line: " + TokenStream.GetCurrentLine());
                         }
                     }
                 }
@@ -644,35 +642,35 @@ public class Converter {
             else if (TempObject.getString("type").equals("str")) {
                 if (IsArrayAssignment) {
                     if (!ArrayTable.get(var).equals(TempObject.getString("type"))) {
-                        throw new Exception();
+                        throw new Exception("Mismatching types on line: " + TokenStream.GetCurrentLine());
                     }
                 } else {
                     if (!doesExist) {
                         SymbolTable.put(var, "str");
                         output = "String " + output;
                     } else if (!SymbolTable.get(var).equals("str")) {
-                        throw new Exception();
+                        throw new Exception("Mismatching types on line: " + TokenStream.GetCurrentLine());
                     }
                 }
                 output += "\"" + TempObject.getString("value") + "\"";
             } // Lists
             else if (TempObject.getString("type").equals("punc")) {
                 if (!TempObject.getString("value").equals("[")) {
-                    throw new Exception();
+                    throw new Exception("Missing [ on line: " + TokenStream.GetCurrentLine());
                 }
                 TempObject = TokenStream.Next();
                 if (TempObject.getString("value").equals("]")) {
-                    throw new Exception();
+                    throw new Exception("Premature closing of [ on line: " + TokenStream.GetCurrentLine());
                 }
                 if (!types.contains(TempObject.getString("value"))
                         || TempObject.getString("value").equals("none")) {
-                    throw new Exception();
+                    throw new Exception("Unknown type on line: " + TokenStream.GetCurrentLine());
                 }
                 String arrayType = TempObject.getString("value");
                 if (doesExist) {
                     if (!SymbolTable.get(var).equals("list")
                             || !ArrayTable.get(var).equals(arrayType)) {
-                        throw new Exception();
+                        throw new Exception("Not a list or unmatching types on line: " + TokenStream.GetCurrentLine());
                     }
                 } else {
                     output = ((arrayType.equals("str") ? "String" : arrayType))
@@ -680,11 +678,11 @@ public class Converter {
                 }
                 TempObject = TokenStream.Next();
                 if (!TempObject.getString("value").equals(",")) {
-                    throw new Exception();
+                    throw new Exception("Missing comma on line: " + TokenStream.GetCurrentLine());
                 }
                 TempObject = TokenStream.Next();
                 if (TempObject.getString("value").equals("]")) {
-                    throw new Exception();
+                    throw new Exception("Premature closing of [ on line: " + TokenStream.GetCurrentLine());
                 }
                 String size = "";
                 // TODO
@@ -694,12 +692,12 @@ public class Converter {
                             if (!FunctionTable.containsKey(TempObject.getString("value"))
                                     || (!FunctionTable.get(TempObject.getString("value")).contains("int")
                                     && !FunctionTable.get(TempObject.getString("value")).get(0).equals(""))) {
-                                throw new Exception();
+                                throw new Exception("Unknown keyword or unmatching types on line: " + TokenStream.GetCurrentLine());
                             }
                             String FunctionName = TempObject.getString("value");
                             TempObject = TokenStream.Next();
                             if (!TempObject.getString("value").equals("(")) {
-                                throw new Exception();
+                                throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
                             }
                             if (FunctionTable.get(FunctionName).get(0).equals("")) {
                                 size += "(int) ";
@@ -727,27 +725,27 @@ public class Converter {
                             break;
                         case "num":
                             if (!TempObject.getString("subtype").equals("int")) {
-                                throw new Exception();
+                                throw new Exception("Non-integer on line: " + TokenStream.GetCurrentLine());
                             }
                             size += TempObject.getString("value") + " ";
                             break;
                         case "op":
                             if (!"+-*/".contains(TempObject.getString("value"))) {
-                                throw new Exception();
+                                throw new Exception("Unknown operator on line: " + TokenStream.GetCurrentLine());
                             }
                             if (TokenStream.Peek().getString("value").equals("]")) {
-                                throw new Exception();
+                                throw new Exception("Premature closing of [ on line: " + TokenStream.GetCurrentLine());
                             }
                             size += TempObject.getString("value") + " ";
                             break;
                         case "punc":
                             if (!TempObject.getString("value").equals("(")) {
-                                throw new Exception();
+                                throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
                             }
                             size += ProcessParantheses() + " ";
                             break;
                         default:
-                            throw new Exception();
+                            throw new Exception("Unknown keyword on line: " + TokenStream.GetCurrentLine());
                     }
                     TempObject = TokenStream.Next();
                 }
@@ -759,7 +757,7 @@ public class Converter {
                         + ((arrayType.equals("str") ? "String" : arrayType))
                         + "[" + size.substring(0, size.length() - 1) + "]";
             } else {
-                throw new Exception();
+                throw new Exception("Unknown type on line: " + TokenStream.GetCurrentLine());
             }
             TempObject = TokenStream.Next();
         }
@@ -775,13 +773,13 @@ public class Converter {
         if (TempObject.getString("value").equals("(")) {
             line += ProcessParantheses() + " {";
         } else {
-            throw new Exception();
+            throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
         }
         output.add(line);
         line = "";
         // Confirm then exists
         if (!(TempObject = TokenStream.Next()).get("value").equals("then")) {
-            throw new Exception();
+            throw new Exception("Missing \"then\" on line: " + TokenStream.GetCurrentLine());
         }
         // Process body
         TempObject = TokenStream.Next();
@@ -811,13 +809,13 @@ public class Converter {
                         if (TempObject.getString("value").equals("(")) {
                             line += ProcessParantheses() + " {";
                         } else {
-                            throw new Exception();
+                            throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
                         }
                         output.add(line);
                         line = "";
 
                         if (!(TempObject = TokenStream.Next()).get("value").equals("then")) {
-                            throw new Exception();
+                            throw new Exception("Missing \"then\" on line: " + TokenStream.GetCurrentLine());
                         }
 
                         TempObject = TokenStream.Next();
@@ -838,7 +836,7 @@ public class Converter {
                     line = "else {";
                     TempObject = TokenStream.Next();
                     if ((TempObject = TokenStream.Next()).get("value").equals("then")) {
-                        throw new Exception();
+                        throw new Exception("Premature \"then\" on line: " + TokenStream.GetCurrentLine());
                     }
                     output.add(line);
                     line = "";
@@ -854,7 +852,7 @@ public class Converter {
                         TempObject = TokenStream.Next();
                     }
                     if (!TempObject.getString("value").equals("endif")) {
-                        throw new Exception();
+                        throw new Exception("Missing \"endif\" on line: " + TokenStream.GetCurrentLine());
                     }
                     output.add("}");
                     break;
@@ -871,13 +869,13 @@ public class Converter {
         if (TempObject.getString("value").equals("(")) {
             line += ProcessParantheses() + " {";
         } else {
-            throw new Exception();
+            throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
         }
         output.add(line);
         line = "";
         // Confirm do exists
         if (!(TempObject = TokenStream.Next()).get("value").equals("do")) {
-            throw new Exception();
+            throw new Exception("Missing \"do\" on line: " + TokenStream.GetCurrentLine());
         }
         // Process body
         TempObject = TokenStream.Next();
@@ -899,7 +897,7 @@ public class Converter {
         JSONObject TempObject = TokenStream.Next();
         // Condition
         if (!TempObject.getString("type").equals("var")) {
-            throw new Exception();
+            throw new Exception("Mismatching types on line: " + TokenStream.GetCurrentLine());
         }
         String var = TempObject.getString("value");
         // Check if var exists (and has a compatible value)
@@ -907,10 +905,10 @@ public class Converter {
         if (SymbolTable.containsKey(var)) {
             if (SymbolTable.get(var).equals("list")) {
                 if (!TokenStream.Peek().getString("value").equals("[")) {
-                    throw new Exception();
+                    throw new Exception("Missing [ on line: " + TokenStream.GetCurrentLine());
                 }
                 if (!ArrayTable.get(var).equals("int")) {
-                    throw new Exception();
+                    throw new Exception("Not an integer on line: " + TokenStream.GetCurrentLine());
                 }
                 TokenStream.Next();
                 var = var + "[" + ProcessArrayIndice() + "]";
@@ -919,7 +917,7 @@ public class Converter {
                 if (SymbolTable.get(var).equals("int")) {
                     line += var + " = ";
                 } else {
-                    throw new Exception();
+                    throw new Exception("Not an integer on line: " + TokenStream.GetCurrentLine());
                 }
             }
         } else {
@@ -929,18 +927,18 @@ public class Converter {
 
         // =
         if (!(TempObject = TokenStream.Next()).getString("value").equals("=")) {
-            throw new Exception();
+            throw new Exception("Missing = on line: " + TokenStream.GetCurrentLine());
         }
 
         // baslangic_degeri
         if ((TempObject = TokenStream.Next()).getString("value").equals("to")) {
-            throw new Exception();
+            throw new Exception("Premature \"to\" on line: " + TokenStream.GetCurrentLine());
         }
         line += ProcessForInitialization(TempObject, "to") + "; " + var + " <> ";
 
         // bir_sayi
         if ((TempObject = TokenStream.Next()).getString("value").equals("by")) {
-            throw new Exception();
+            throw new Exception("Premature \"by\" on line: " + TokenStream.GetCurrentLine());
         }
         line += ProcessForInitialization(TempObject, "by") + "; " + var;
 
@@ -957,7 +955,7 @@ public class Converter {
                 line = line.replace("<>", ">") + " -= (";
                 break;
             default:
-                throw new Exception();
+                throw new Exception("Unknown operator on line: " + TokenStream.GetCurrentLine());
         }
 
         TempObject = TokenStream.Next();
@@ -986,45 +984,45 @@ public class Converter {
             switch (TempObject.getString("type")) {
                 case "num":
                     if (TempObject.getString("subtype").equals("float")) {
-                        throw new Exception();
+                        throw new Exception("Floats are not allowed on line: " + TokenStream.GetCurrentLine());
                     }
                     ValueString += TempObject.getString("value") + " ";
                     break;
                 case "op":
                     if (!"+-*/".contains(TempObject.getString("value"))) {
-                        throw new Exception();
+                        throw new Exception("Unknown operator on line: " + TokenStream.GetCurrentLine());
                     }
                     ValueString += TempObject.getString("value") + " ";
                     break;
                 case "var":
                     if (TokenStream.Peek().getString("value").equals("[")) {
                         if (!SymbolTable.get(TempObject.getString("value")).equals("list")) {
-                            throw new Exception();
+                            throw new Exception("Not a list on line: " + TokenStream.GetCurrentLine());
                         }
                         if (!ArrayTable.get(TempObject.getString("value")).equals("int")) {
-                            throw new Exception();
+                            throw new Exception("Not an integer list on line: " + TokenStream.GetCurrentLine());
                         }
                         TokenStream.Next();
                         ValueString += TempObject.getString("value") + "[" + ProcessArrayIndice() + "] ";
                     } else {
                         if (!SymbolTable.containsKey(TempObject.getString("value"))
                                 || !SymbolTable.get(TempObject.getString("value")).equals("int")) {
-                            throw new Exception();
+                            throw new Exception("Variable does not exist or is not integer on line: " + TokenStream.GetCurrentLine());
                         }
                         ValueString += TempObject.getString("value") + " ";
                     }
                     break;
                 case "kw":
                     if (!FunctionTable.containsKey(TempObject.getString("value"))) {
-                        throw new Exception();
+                        throw new Exception("Unknown keyword on line: " + TokenStream.GetCurrentLine());
                     }
                     if (!FunctionTable.get(TempObject.getString("value")).contains("int")
                             && !(FunctionTable.get(TempObject.getString("value")).size() == 1
                             && FunctionTable.get(TempObject.getString("value")).get(0).equals(""))) {
-                        throw new Exception();
+                        throw new Exception("Function does not return integer on line: " + TokenStream.GetCurrentLine());
                     }
                     if (!TokenStream.Peek().getString("value").equals("(")) {
-                        throw new Exception();
+                        throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
                     }
                     TokenStream.Next(); // TODO 1
                     switch (TempObject.getString("value")) {
@@ -1052,7 +1050,7 @@ public class Converter {
                     }
                     break;
                 default:
-                    throw new Exception();
+                    throw new Exception("Unknown keyword on line: " + TokenStream.GetCurrentLine());
             }
             TempObject = TokenStream.Next();
         }
@@ -1073,7 +1071,7 @@ public class Converter {
                 case "punc":
                     if (TempObject.getString("value").equals("{")
                             || TempObject.getString("value").equals("}")) {
-                        throw new Exception();
+                        throw new Exception("Unknown punctuation on line: " + TokenStream.GetCurrentLine());
                     }
                     if (TempObject.getString("value").equals("(")) {
                         output += ProcessParantheses() + " ";
@@ -1098,52 +1096,52 @@ public class Converter {
                             break;
                         case "abs":
                             if (!ContainsParantheses) {
-                                throw new Exception();
+                                throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
                             }
                             output += "Math.abs" + ProcessParantheses() + " ";
                             break;
                         case "pow":
                             if (!ContainsParantheses) {
-                                throw new Exception();
+                                throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
                             }
                             output += "Math.pow" + ProcessParantheses() + " ";
                             break;
                         case "sqrt":
                             if (!ContainsParantheses) {
-                                throw new Exception();
+                                throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
                             }
                             output += "Math.sqrt" + ProcessParantheses() + " ";
                             break;
                         case "round":
                             if (!ContainsParantheses) {
-                                throw new Exception();
+                                throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
                             }
                             output += "Math.round" + ProcessParantheses() + " ";
                             break;
                         case "trunc":
                             if (!ContainsParantheses) {
-                                throw new Exception();
+                                throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
                             }
                             output += "Math.ceil" + ProcessParantheses() + " ";
                             break;
                         default:
                             if (FunctionTable.containsKey(TempObject.getString("value"))) {
                                 if (!ContainsParantheses) {
-                                    throw new Exception();
+                                    throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
                                 }
                                 output += TempObject.getString("value") + ProcessParantheses() + " ";
                             } else {
-                                throw new Exception();
+                                throw new Exception("Unknown keyword on line: " + TokenStream.GetCurrentLine());
                             }
                     }
                     break;
                 case "var":
                     if (!SymbolTable.containsKey(TempObject.getString("value"))) {
-                        throw new Exception();
+                        throw new Exception("Variable does not exist on line: " + TokenStream.GetCurrentLine());
                     }
                     if (TokenStream.Peek().getString("value").equals("[")) {
                         if (!SymbolTable.get(TempObject.getString("value")).equals("list")) {
-                            throw new Exception();
+                            throw new Exception("Not an array on line: " + TokenStream.GetCurrentLine());
                         }
                         String ArrayName = TempObject.getString("value");
                         TokenStream.Next();
@@ -1163,7 +1161,7 @@ public class Converter {
                     output += TempObject.getString("value") + " ";
                     break;
                 default:
-                    throw new Exception();
+                    throw new Exception("Unknown type on line: " + TokenStream.GetCurrentLine());
             }
             TempObject = TokenStream.Next();
         }
@@ -1191,12 +1189,12 @@ public class Converter {
                 break;
             default:
                 if (!FunctionTable.containsKey(InputKeyword.getString("value"))) {
-                    throw new Exception();
+                    throw new Exception("Unknown keyword on line: " + TokenStream.GetCurrentLine());
                 }
                 String line = InputKeyword.getString("value");
                 InputKeyword = TokenStream.Next();
                 if (!InputKeyword.getString("value").equals("(")) {
-                    throw new Exception();
+                    throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
                 }
                 Output.add(line + ProcessParantheses() + ((TokenStream.Peek().getString("value").equals("eol")) ? ";" : ""));
         }
@@ -1207,7 +1205,7 @@ public class Converter {
         JSONObject TempObject = TokenStream.Next();
         if (FunctionReturnType.equals("none")) {
             if (!TempObject.getString("value").equals("eol")) {
-                throw new Exception();
+                throw new Exception("Returning something from a \"none\" function on line: " + TokenStream.GetCurrentLine());
             }
             return Arrays.asList("return;");
         }
@@ -1216,7 +1214,7 @@ public class Converter {
         String line = "return ";
 
         if (TempObject.getString("value").equals("eol")) {
-            throw new Exception();
+            throw new Exception("Premature end of line on line: " + TokenStream.GetCurrentLine());
         }
         while (!TempObject.getString("value").equals("eol")) {
             switch (TempObject.getString("type")) {
@@ -1230,9 +1228,9 @@ public class Converter {
                     } else if (FunctionReturnType.equals("str")
                             && !ParameterList.contains("str")
                             && TokenStream.Peek().getString("value").equals("eol")) {
-                        throw new Exception();
+                        throw new Exception("Returning only numbers from a string returning function on line: " + TokenStream.GetCurrentLine());
                     } else if (!FunctionReturnType.equals("str")) {
-                        throw new Exception();
+                        throw new Exception("Incompatible return types on line: " + TokenStream.GetCurrentLine());
                     }
                     line += TempObject.getString("value") + " ";
                     break;
@@ -1240,7 +1238,7 @@ public class Converter {
                     if (FunctionReturnType.equals("int")
                             || FunctionReturnType.equals("float")) {
                         if (!SymbolTable.get(TempObject.getString("value")).equals(FunctionReturnType)) {
-                            throw new Exception();
+                            throw new Exception("Incompatible return types on line: " + TokenStream.GetCurrentLine());
                         }
                     }
                     ParameterList.add(SymbolTable.get(TempObject.getString("value")));
@@ -1248,14 +1246,14 @@ public class Converter {
                     break;
                 case "kw":
                     if (!FunctionTable.containsKey(TempObject.getString("value"))) {
-                        throw new Exception();
+                        throw new Exception("Unknown keyword on line: " + TokenStream.GetCurrentLine());
                     }
                     if (!FunctionReturnType.equals("str")) {
                         if (!FunctionTable.get(TempObject.getString("value")).contains(FunctionReturnType)
                                 && !FunctionTable.get(TempObject.getString("value")).contains("str")) {
                             line += "(" + FunctionReturnType + ") ";
                         } else if (FunctionTable.get(TempObject.getString("value")).contains("str")) {
-                            throw new Exception();
+                            throw new Exception("Incompatible return types on line: " + TokenStream.GetCurrentLine());
                         }
                     }
                     ParameterList.add(FunctionReturnType);
@@ -1265,12 +1263,12 @@ public class Converter {
                     if (TempObject.getString("value").equals("(")) {
                         line += ProcessParantheses() + " ";
                     } else {
-                        throw new Exception();
+                        throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
                     }
                     break;
                 case "str":
                     if (!FunctionReturnType.equals("str")) {
-                        throw new Exception();
+                        throw new Exception("Incompatible return types on line: " + TokenStream.GetCurrentLine());
                     }
                     ParameterList.add(FunctionReturnType);
                     line += "\"" + TempObject.getString("value") + "\" ";
@@ -1281,26 +1279,26 @@ public class Converter {
                     if (TempObject.getString("value").equals("(")) {
                         line += ProcessParantheses() + " ";
                     } else {
-                        throw new Exception();
+                        throw new Exception("Mising paranthesis on line: " + TokenStream.GetCurrentLine());
                     }
                     ParameterList.add("()");
                     break;
                 case "op":
                     if (TokenStream.Peek().getString("value").equals("eol")) {
-                        throw new Exception();
+                        throw new Exception("Premature end of line on line: " + TokenStream.GetCurrentLine());
                     }
                     switch (FunctionReturnType) {
                         case "int":
                         case "float":
                             if (!"+-*/".contains(TempObject.getString("value"))) {
-                                throw new Exception();
+                                throw new Exception("Unknown operator on line: " + TokenStream.GetCurrentLine());
                             }
                             line += TempObject.getString("value") + " ";
                             ParameterList.add(TempObject.getString("value"));
                             break;
                         case "str":
                             if (!TempObject.getString("value").equals("+")) {
-                                throw new Exception();
+                                throw new Exception("Usage of some operator other than + on strings on line: " + TokenStream.GetCurrentLine());
                             }
                             line += "+ ";
                             ParameterList.add("+");

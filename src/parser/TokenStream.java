@@ -78,6 +78,10 @@ public class TokenStream {
         this.InputStream = _InputStream;
     }
     
+    public int GetCurrentLine() {
+        return this.InputStream.getLine();
+    }
+    
     public void reset() throws Exception {
         this.InputStream = new InputStream(this.InputStream._SourceFile);
         this.current = null;
