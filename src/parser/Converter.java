@@ -34,8 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import org.json.JSONObject;
 import com.google.googlejavaformat.java.Formatter;
-import java.io.IOException;
-import java.io.Reader;
 
 /**
  *
@@ -415,6 +413,9 @@ public class Converter {
                         TokenStream.Next();
                         output += TempObject.getString("value") + "[" + ProcessArrayIndice() + "]";
                     } else {
+                        if (!SymbolTable.containsKey(TempObject.getString("value"))) {
+                            throw new Exception("Variable \"" + TempObject.getString("value") + "\" does not exist on line: " + TokenStream.GetCurrentLine());
+                        }
                         output += TempObject.getString("value");
                     }
                     break;
@@ -506,7 +507,11 @@ public class Converter {
                 }
             } // Keywords
             else if (TempObject.getString("type").equals("kw")) {
-                output += ProcessKeywords(TempObject);
+                if (TempObject.getString("value").equals("mod")) {
+                    output += " % ";
+                } else {
+                    output += ProcessKeywords(TempObject);
+                }
             } // Variables
             else if (TempObject.getString("type").equals("var")) {
                 boolean IsArrayOperand = TokenStream.Peek().getString("value").equals("[");
@@ -564,7 +569,7 @@ public class Converter {
                     } // Variable operand
                     else {
                         if (IsArrayAssignment) {
-                            if (!ArrayTable.get(var).equals(TempObject.getString("value"))) {
+                            if (!ArrayTable.get(var).equals(SymbolTable.get(TempObject.getString("value")))) {
                                 throw new Exception("Mismatching variable and array types on line: " + TokenStream.GetCurrentLine());
                             }
                             output += TempObject.getString("value");
@@ -882,10 +887,12 @@ public class Converter {
         while (TempObject.getString("type").equals("eol")) {
             TempObject = TokenStream.Next();
         }
-        while (!TempObject.getString("type").equals("eol")
-                && !TempObject.getString("value").equals("endwhile")) {
+        while (!TempObject.getString("value").equals("endwhile")) {
             output.addAll(ProcessType(TempObject));
             TempObject = TokenStream.Next();
+            while (TempObject.getString("type").equals("eol")) {
+                TempObject = TokenStream.Next();
+            }
         }
         output.add("}");
         return output;
