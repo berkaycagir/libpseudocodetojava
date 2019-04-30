@@ -79,7 +79,7 @@ public class Converter {
             while (TempObject.getString("type").equals("eol")) {
                 TempObject = TokenStream.Next();
             }
-            if (TempObject.getString("value").equals("algorithm")) {
+            if (TempObject.getString("value").equals("algo")) {
                 line = "public static ";
                 // type
                 TempObject = TokenStream.Next();
@@ -157,7 +157,7 @@ public class Converter {
                 TempObject = TokenStream.Next();
                 array.add(line);
                 FunctionReturnSatisfied = false;
-                while (!TempObject.getString("value").equals("endalgorithm")) {
+                while (!TempObject.getString("value").equals("endalgo")) {
                     array.addAll(ProcessType(TempObject));
                     TempObject = TokenStream.Next();
                     while (TempObject.getString("type").equals("eol")) {
@@ -192,7 +192,7 @@ public class Converter {
             while (TempObject.getString("type").equals("eol")) {
                 TempObject = TokenStream.Next();
             }
-            if (TempObject.getString("value").equals("algorithm")) {
+            if (TempObject.getString("value").equals("algo")) {
                 // type
                 TempObject = TokenStream.Next();
                 if (!types.contains(TempObject.getString("value"))) {
@@ -244,7 +244,7 @@ public class Converter {
                 boolean endAlg = false;
                 while (!TokenStream.EOF()) {
                     TempObject = TokenStream.Next();
-                    if (TempObject.getString("value").equals("endalgorithm")) {
+                    if (TempObject.getString("value").equals("endalgo")) {
                         endAlg = true;
                         break;
                     }
@@ -507,10 +507,58 @@ public class Converter {
                 }
             } // Keywords
             else if (TempObject.getString("type").equals("kw")) {
+                // type assignment eksik
                 if (TempObject.getString("value").equals("mod")) {
                     output += " % ";
                 } else {
-                    output += ProcessKeywords(TempObject);
+                    if (!FunctionTable.containsKey(TempObject.getString("value"))) {
+                        throw new Exception("Not an assignable keyword on line: " + TokenStream.GetCurrentLine());
+                    }
+                    
+                    if (FunctionTable.get(TempObject.getString("value")).get(0).equals("none")) {
+                        throw new Exception("Assigned function does not return a value on line: " + TokenStream.GetCurrentLine());
+                    }
+                    
+                    if (IsArrayAssignment) {
+                        if (!FunctionTable.get(TempObject.getString("value")).contains(ArrayTable.get(var))) {
+                            throw new Exception("Mismatching function return and array types on line: " + TokenStream.GetCurrentLine());
+                        }
+                        output += ProcessKeywords(TempObject).get(0);
+                    } else {
+                        // if left hand variable exists
+                        if (doesExist) {
+                            // but not of the same type
+                            if ((SymbolTable.get(var).equals("str") || FunctionTable.get(TempObject.getString("value")).get(0).equals("str"))
+                                    && !SymbolTable.get(var).equals(FunctionTable.get(TempObject.getString("value")).get(0))) {
+                                throw new Exception("Mismatching types on line: " + TokenStream.GetCurrentLine());
+                            }
+                            if (NumberType.equals("int")
+                                    && FunctionTable.get(TempObject.getString("value")).get(0).equals("float")) {
+                                output = "float" + output.substring(3, output.length());
+                                SymbolTable.put(var, "float");
+                                NumberType = "float";
+                            }
+                        } // if left hand variable does not exist and has no type assigned
+                        else if (!doesExist && !typeAssigned) {
+                            // assign the responding type
+                            switch (FunctionTable.get(TempObject.getString("value")).get(0)) {
+                                case "int":
+                                case "float":
+                                    output = FunctionTable.get(TempObject.getString("value")).get(0) + " " + output;
+                                    NumberType = FunctionTable.get(TempObject.getString("value")).get(0);
+                                    break;
+                                case "str":
+                                    output = "String " + output;
+                                    break;
+                                default:
+                                    throw new Exception("Undefined type on line: " + TokenStream.GetCurrentLine());
+                            }
+                            typeAssigned = true;
+                            doesExist = true;
+                            SymbolTable.put(var, FunctionTable.get(TempObject.getString("value")).get(0));
+                        }
+                        output += ProcessKeywords(TempObject).get(0);
+                    }
                 }
             } // Variables
             else if (TempObject.getString("type").equals("var")) {
@@ -1203,7 +1251,7 @@ public class Converter {
                 if (!InputKeyword.getString("value").equals("(")) {
                     throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
                 }
-                Output.add(line + ProcessParantheses() + ((TokenStream.Peek().getString("value").equals("eol")) ? ";" : ""));
+                Output.add(line + ProcessParantheses()/* + ((TokenStream.Peek().getString("value").equals("eol")) ? ";" : "")*/);
         }
         return Output;
     }

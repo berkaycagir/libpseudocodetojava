@@ -43,8 +43,7 @@ public class TokenStream {
     private InputStream InputStream;
     
     public TokenStream(InputStream _InputStream) {
-        keywords = new ArrayList<>(Arrays.asList("input",
-                                                 "print",
+        keywords = new ArrayList<>(Arrays.asList("print",
                                                  "if",
                                                  "elseif",
                                                  "else",
@@ -68,9 +67,9 @@ public class TokenStream {
                                                  "trunc",
                                                  "swap",
                                                  "return",
-                                                 "algorithm",
+                                                 "algo",
                                                  "begin",
-                                                 "endalgorithm",
+                                                 "endalgo",
                                                  "str",
                                                  "int",
                                                  "float",
