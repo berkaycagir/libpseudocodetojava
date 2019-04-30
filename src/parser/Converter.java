@@ -276,6 +276,10 @@ public class Converter {
                     indice += TempObject.getString("value") + " ";
                     break;
                 case "kw":
+                    if (TempObject.getString("value").equals("mod")) {
+                        indice += " % ";
+                        break;
+                    }
                     if (!FunctionTable.containsKey(TempObject.getString("value"))
                             || (!FunctionTable.get(TempObject.getString("value")).contains("int")
                             && !FunctionTable.get(TempObject.getString("value")).get(0).equals(""))) {
@@ -364,7 +368,7 @@ public class Converter {
                     Output.add(ProcessAssignment(var, true, indice));
                 } // No assignments?
                 else {
-                    Output.add(TempObject.getString("value") + " ");
+                    throw new Exception("Unidentifiable keyword on line: " + TokenStream.GetCurrentLine());
                 }
                 break;
             case "kw":
@@ -445,12 +449,27 @@ public class Converter {
                         throw new Exception("Non-applicable punctuation on line: " + TokenStream.GetCurrentLine());
                     }
                     break;
+                case "kw":
+                    if (TempObject.getString("value").equals("mod")) {
+                        output += " % ";
+                    } else {
+                        if (!FunctionTable.containsKey(TempObject.getString("value"))) {
+                            throw new Exception("Not an assignable keyword on line: " + TokenStream.GetCurrentLine());
+                        }
+                        if (FunctionTable.get(TempObject.getString("value")).get(0).equals("none")) {
+                            throw new Exception("Assigned function does not return a value on line: " + TokenStream.GetCurrentLine());
+                        }
+                        output += ProcessKeywords(TempObject).get(0);
+                    }
+                    break;
                 default:
                     throw new Exception("Unknown keyword on line: " + TokenStream.GetCurrentLine());
             }
             TempObject = TokenStream.Next();
         }
-        TokenStream.Next();
+        if (TokenStream.Peek().getString("type").equals("eol")) {
+            TokenStream.Next();
+        }
         return output + ");";
     }
 
@@ -514,11 +533,11 @@ public class Converter {
                     if (!FunctionTable.containsKey(TempObject.getString("value"))) {
                         throw new Exception("Not an assignable keyword on line: " + TokenStream.GetCurrentLine());
                     }
-                    
+
                     if (FunctionTable.get(TempObject.getString("value")).get(0).equals("none")) {
                         throw new Exception("Assigned function does not return a value on line: " + TokenStream.GetCurrentLine());
                     }
-                    
+
                     if (IsArrayAssignment) {
                         if (!FunctionTable.get(TempObject.getString("value")).contains(ArrayTable.get(var))) {
                             throw new Exception("Mismatching function return and array types on line: " + TokenStream.GetCurrentLine());
