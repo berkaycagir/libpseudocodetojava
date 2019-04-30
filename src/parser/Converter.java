@@ -387,8 +387,9 @@ public class Converter {
             case "punc":
                 if (TempObject.getString("value").equals("(")) {
                     Output.add(ProcessParantheses());
+                } else {
+                    throw new Exception("Unidentifiable character on line: " + TokenStream.GetCurrentLine());
                 }
-                Output.add(TempObject.getString("value"));
                 break;
             case "op":
                 Output.add(TempObject.getString("value"));
