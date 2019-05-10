@@ -366,23 +366,22 @@ public class Converter {
                         throw new Exception("Missing = on line: " + TokenStream.GetCurrentLine());
                     }
                     Output.add(ProcessAssignment(var, true, indice));
-                } // No assignments?
+                }
                 else {
                     throw new Exception("Unidentifiable keyword on line: " + TokenStream.GetCurrentLine());
                 }
                 break;
             case "kw":
-                Output.addAll(ProcessKeywords(TempObject));
+                List<String> returnList = ProcessKeywords(TempObject);
+                if (returnList.size() == 1 && TokenStream.Peek().getString("value").equals("eol")) {
+                    String line = returnList.get(0);
+                    returnList.clear();
+                    returnList.add(line + ";");
+                }
+                Output.addAll(returnList);
                 break;
             case "str":
-                // GEREKSIZ OLABILIR (EDA DEDI ONA KIZIN)
                 Output.add("\"" + TempObject.getString("value") + "\"");
-                break;
-            case "eol":
-                // TODO
-                /* if(!TokenStream.EOF() && TokenStream.Peek().getString("type").equals("eol")){
-                    Output.add("\n");   
-                } */
                 break;
             case "punc":
                 if (TempObject.getString("value").equals("(")) {
@@ -1019,14 +1018,11 @@ public class Converter {
 
         // degisim_miktari
         TempObject = TokenStream.Next();
-        boolean IsPlus;
         switch (TempObject.getString("value")) {
             case "+":
-                IsPlus = true;
                 line = line.replace("<>", "<") + " += (";
                 break;
             case "-":
-                IsPlus = false;
                 line = line.replace("<>", ">") + " -= (";
                 break;
             default:
