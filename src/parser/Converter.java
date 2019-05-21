@@ -45,9 +45,10 @@ public class Converter {
     private InputStream InputStream;
     private TokenStream TokenStream;
     private String FunctionReturnType;
+    private String FunctionReturnListType;
     private boolean FunctionReturnSatisfied;
     private File OutputFile;
-    private List<String> types = Arrays.asList("str", "int", "float", "none", "List");
+    private List<String> types = Arrays.asList("str", "int", "float", "none", "list");
     private HashMap<String, String> SymbolTable = new HashMap<>();
     private HashMap<String, String> ArrayTable = new HashMap<>();
     private HashMap<String, List<String>> FunctionTable = new HashMap<String, List<String>>() {
@@ -86,8 +87,22 @@ public class Converter {
                 if (!types.contains(TempObject.getString("value"))) {
                     throw new Exception("Undefined type on line: " + TokenStream.GetCurrentLine());
                 }
-                FunctionReturnType = TempObject.getString("value");
-                line += (FunctionReturnType.equals("none")) ? "void " : (FunctionReturnType.equals("str")) ? "String " : FunctionReturnType + " ";
+                if (TokenStream.Peek().getString("value").equals("[")) {
+                    FunctionReturnListType = TempObject.getString("value");
+                    if (FunctionReturnListType.equals("none")) {
+                        throw new Exception("Trying to return none list on line: " + TokenStream.GetCurrentLine());
+                    }
+                    TempObject = TokenStream.Next();
+                    if (!TokenStream.Peek().getString("value").equals("]")) {
+                        throw new Exception("Missing ] on line: " + TokenStream.GetCurrentLine());
+                    }
+                    FunctionReturnType = "list";
+                    TempObject = TokenStream.Next();
+                    line += (FunctionReturnListType.equals("str")) ? "String[] " : FunctionReturnListType + "[] ";
+                } else {
+                    FunctionReturnType = TempObject.getString("value");
+                    line += (FunctionReturnType.equals("none")) ? "void " : (FunctionReturnType.equals("str")) ? "String " : FunctionReturnType + " ";
+                }
                 // method name
                 TempObject = TokenStream.Next();
                 if (!FunctionTable.containsKey(TempObject.getString("value"))) {
@@ -173,6 +188,7 @@ public class Converter {
                 ArrayTable.clear();
 
                 FunctionReturnType = "";
+                FunctionReturnListType = "";
                 FunctionReturnSatisfied = false;
                 line = "}";
                 array.add(line);
@@ -198,7 +214,20 @@ public class Converter {
                 if (!types.contains(TempObject.getString("value"))) {
                     throw new Exception("Unknown type on line: " + TokenStream.GetCurrentLine());
                 }
-                type = TempObject.getString("value");
+                if (TokenStream.Peek().getString("value").equals("[")) {
+                    String ListType = TempObject.getString("value");
+                    if (ListType.equals("none")) {
+                        throw new Exception("Trying to return none list on line: " + TokenStream.GetCurrentLine());
+                    }
+                    TempObject = TokenStream.Next();
+                    if (!TokenStream.Peek().getString("value").equals("]")) {
+                        throw new Exception("Missing ] on line: " + TokenStream.GetCurrentLine());
+                    }
+                    TempObject = TokenStream.Next();
+                    type = "list";
+                } else {
+                    type = TempObject.getString("value");
+                }
                 // method name
                 TempObject = TokenStream.Next();
                 if (TokenStream.KeywordExists(TempObject.getString("value"))) {
@@ -366,8 +395,7 @@ public class Converter {
                         throw new Exception("Missing = on line: " + TokenStream.GetCurrentLine());
                     }
                     Output.add(ProcessAssignment(var, true, indice));
-                }
-                else {
+                } else {
                     throw new Exception("Unidentifiable keyword on line: " + TokenStream.GetCurrentLine());
                 }
                 break;
@@ -1306,14 +1334,28 @@ public class Converter {
                     line += TempObject.getString("value") + " ";
                     break;
                 case "var":
-                    if (FunctionReturnType.equals("int")
-                            || FunctionReturnType.equals("float")) {
+                    if (FunctionReturnType.equals("list")) {
                         if (!SymbolTable.get(TempObject.getString("value")).equals(FunctionReturnType)) {
                             throw new Exception("Incompatible return types on line: " + TokenStream.GetCurrentLine());
                         }
+                        if (!ArrayTable.get(TempObject.getString("value")).equals(FunctionReturnListType)) {
+                            throw new Exception("Incompatible list type on line: " + TokenStream.GetCurrentLine());
+                        }
+                        ParameterList.add(SymbolTable.get(TempObject.getString("value")));
+                        if (!TokenStream.Peek().getString("value").equals("eol") || ParameterList.size() != 1) {
+                            throw new Exception("Incompatible operation on lists on line: " + TokenStream.GetCurrentLine());
+                        }
+                        line += TempObject.getString("value") + " ";
+                    } else {
+                        if (FunctionReturnType.equals("int")
+                                || FunctionReturnType.equals("float")) {
+                            if (!SymbolTable.get(TempObject.getString("value")).equals(FunctionReturnType)) {
+                                throw new Exception("Incompatible return types on line: " + TokenStream.GetCurrentLine());
+                            }
+                        }
+                        ParameterList.add(SymbolTable.get(TempObject.getString("value")));
+                        line += TempObject.getString("value") + " ";
                     }
-                    ParameterList.add(SymbolTable.get(TempObject.getString("value")));
-                    line += TempObject.getString("value") + " ";
                     break;
                 case "kw":
                     if (!FunctionTable.containsKey(TempObject.getString("value"))) {
