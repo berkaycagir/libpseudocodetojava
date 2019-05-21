@@ -886,8 +886,7 @@ public class Converter {
         while (TempObject.getString("type").equals("eol")) {
             TempObject = TokenStream.Next();
         }
-        while (!TempObject.getString("type").equals("eol")
-                && !TempObject.getString("value").equals("else")
+        while (!TempObject.getString("value").equals("else")
                 && !TempObject.getString("value").equals("elseif")
                 && !TempObject.getString("value").equals("endif")) {
             output.addAll(ProcessType(TempObject));
@@ -898,8 +897,7 @@ public class Converter {
         while (TempObject.getString("type").equals("eol")) {
             TempObject = TokenStream.Next();
         }
-        while (!TempObject.getString("type").equals("eol")
-                && !TempObject.getString("value").equals("endif")) {
+        while (!TempObject.getString("value").equals("endif")) {
             switch (TempObject.getString("value")) {
                 case "elseif":
                     while (TempObject.getString("value").equals("elseif")) {
@@ -922,8 +920,7 @@ public class Converter {
                         while (TempObject.getString("type").equals("eol")) {
                             TempObject = TokenStream.Next();
                         }
-                        while (!TempObject.getString("type").equals("eol")
-                                && !TempObject.getString("value").equals("else")
+                        while (!TempObject.getString("value").equals("else")
                                 && !TempObject.getString("value").equals("elseif")
                                 && !TempObject.getString("value").equals("endif")) {
                             output.addAll(ProcessType(TempObject));
@@ -944,8 +941,8 @@ public class Converter {
                     while (TempObject.getString("type").equals("eol")) {
                         TempObject = TokenStream.Next();
                     }
-                    while (!TempObject.getString("type").equals("eol")
-                            && !TempObject.getString("value").equals("else")
+                    // TODO 21.05.19
+                    while (!TempObject.getString("value").equals("else")
                             && !TempObject.getString("value").equals("elseif")
                             && !TempObject.getString("value").equals("endif")) {
                         output.addAll(ProcessType(TempObject));
