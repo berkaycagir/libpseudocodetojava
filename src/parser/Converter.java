@@ -57,6 +57,7 @@ public class Converter {
         {
             put("abs", Arrays.asList("int", "float"));
             put("pow", Arrays.asList(""));
+            put("sqr", Arrays.asList(""));
             put("sqrt", Arrays.asList(""));
             put("round", Arrays.asList("int"));
             put("trunc", Arrays.asList(""));
@@ -324,9 +325,14 @@ public class Converter {
                     if (FunctionTable.get(FunctionName).get(0).equals("")) {
                         indice += "(int) ";
                     }
+                    boolean IsSqr = false;
                     switch (FunctionName) {
                         case "abs":
                             indice += "Math.abs";
+                            break;
+                        case "sqr":
+                            indice += "Math.pow";
+                            IsSqr = true;
                             break;
                         case "pow":
                             indice += "Math.pow";
@@ -343,7 +349,11 @@ public class Converter {
                         default:
                             indice += FunctionName;
                     }
-                    indice += ProcessParantheses() + " ";
+                    String o = ProcessParantheses();
+                    if (IsSqr) {
+                        o = o.substring(0, o.length() - 1) + ", 2)";
+                    }
+                    indice += o + " ";
                     break;
                 case "num":
                     if (!TempObject.getString("subtype").equals("int")) {
@@ -599,14 +609,19 @@ public class Converter {
                                 case "str":
                                     output = "String " + output;
                                     break;
+                                case "":
+                                    output = "float " + output;
+                                    NumberType = "float";
+                                    break;
                                 default:
                                     throw new Exception("Undefined type on line: " + TokenStream.GetCurrentLine());
                             }
                             typeAssigned = true;
                             doesExist = true;
                             SymbolTable.put(var, FunctionTable.get(TempObject.getString("value")).get(0));
-                            if (InsideBlock)
+                            if (InsideBlock) {
                                 LocalSymbolTable.put(var, FunctionTable.get(TempObject.getString("value")).get(0));
+                            }
                         }
                         output += ProcessKeywords(TempObject).get(0);
                     }
@@ -642,8 +657,9 @@ public class Converter {
                                     // TODO 1
                                     output = "float" + output.substring(3, output.length());
                                     SymbolTable.put(var, "float");
-                                    if (InsideBlock)
+                                    if (InsideBlock) {
                                         LocalSymbolTable.put(var, "float");
+                                    }
                                     NumberType = "float";
                                 }
                             } // if left hand variable does not exist and has no type assigned
@@ -664,8 +680,9 @@ public class Converter {
                                 typeAssigned = true;
                                 doesExist = true;
                                 SymbolTable.put(var, ArrayTable.get(ArrayName));
-                                if (InsideBlock)
+                                if (InsideBlock) {
                                     LocalSymbolTable.put(var, ArrayTable.get(ArrayName));
+                                }
                             }
                             output += operand;
                         }
@@ -688,8 +705,9 @@ public class Converter {
                                         && SymbolTable.get(TempObject.getString("value")).equals("float")) {
                                     output = "float" + output.substring(3, output.length());
                                     SymbolTable.put(var, "float");
-                                    if (InsideBlock)
+                                    if (InsideBlock) {
                                         LocalSymbolTable.put(var, "float");
+                                    }
                                     NumberType = "float";
                                 }
                             } // if left hand variable does not exist and has no type assigned
@@ -710,8 +728,9 @@ public class Converter {
                                 typeAssigned = true;
                                 doesExist = true;
                                 SymbolTable.put(var, SymbolTable.get(TempObject.getString("value")));
-                                if (InsideBlock)
+                                if (InsideBlock) {
                                     LocalSymbolTable.put(var, SymbolTable.get(TempObject.getString("value")));
+                                }
                             }
                             output += TempObject.getString("value");
                         }
@@ -736,8 +755,9 @@ public class Converter {
                     if (TempObject.getString("subtype").equals("float")) {
                         if (!doesExist) {
                             SymbolTable.put(var, "float");
-                            if (InsideBlock)
+                            if (InsideBlock) {
                                 LocalSymbolTable.put(var, "float");
+                            }
                             output = "float " + output;
                         } else if (SymbolTable.get(var).equals("str")) {
                             throw new Exception("Mismatching type on line: " + TokenStream.GetCurrentLine());
@@ -745,8 +765,9 @@ public class Converter {
                     } else {
                         if (!doesExist) {
                             SymbolTable.put(var, "int");
-                            if (InsideBlock)
+                            if (InsideBlock) {
                                 LocalSymbolTable.put(var, "int");
+                            }
                             output = "int " + output;
                         } else if (SymbolTable.get(var).equals("str")) {
                             throw new Exception("Mismatching type on line: " + TokenStream.GetCurrentLine());
@@ -763,8 +784,9 @@ public class Converter {
                 } else {
                     if (!doesExist) {
                         SymbolTable.put(var, "str");
-                        if (InsideBlock)
+                        if (InsideBlock) {
                             LocalSymbolTable.put(var, "str");
+                        }
                         output = "String " + output;
                     } else if (!SymbolTable.get(var).equals("str")) {
                         throw new Exception("Mismatching types on line: " + TokenStream.GetCurrentLine());
@@ -820,9 +842,14 @@ public class Converter {
                             if (FunctionTable.get(FunctionName).get(0).equals("")) {
                                 size += "(int) ";
                             }
+                            boolean IsSqr = false;
                             switch (FunctionName) {
                                 case "abs":
                                     size += "Math.abs";
+                                    break;
+                                case "sqr":
+                                    size = "Math.pow";
+                                    IsSqr = true;
                                     break;
                                 case "pow":
                                     size += "Math.pow";
@@ -839,7 +866,11 @@ public class Converter {
                                 default:
                                     size += FunctionName;
                             }
-                            size += ProcessParantheses() + " ";
+                            String o = ProcessParantheses();
+                            if (IsSqr) {
+                                o = o.substring(0, o.length() - 1) + ", 2)";
+                            }
+                            size += o + " ";
                             break;
                         case "num":
                             if (!TempObject.getString("subtype").equals("int")) {
@@ -870,8 +901,9 @@ public class Converter {
                 ArrayTable.put(var, arrayType);
                 if (!doesExist) {
                     SymbolTable.put(var, "list");
-                    if (InsideBlock)
+                    if (InsideBlock) {
                         LocalSymbolTable.put(var, "list");
+                    }
                 }
                 output += "new "
                         + ((arrayType.equals("str") ? "String" : arrayType))
@@ -1163,6 +1195,11 @@ public class Converter {
                         case "abs":
                             ValueString += "Math.abs" + ProcessParantheses() + " ";
                             break;
+                        case "sqr":
+                            String o = "(int) Math.pow" + ProcessParantheses();
+                            o = o.substring(0, o.length() - 1) + ", 2)";
+                            ValueString = o + " ";
+                            break;
                         case "pow":
                             ValueString += "(int) Math.pow" + ProcessParantheses() + " ";
                             break;
@@ -1220,12 +1257,15 @@ public class Converter {
                             output += " % ";
                             break;
                         case "not":
+                        case "NOT":
                             output += "!";
                             break;
                         case "and":
+                        case "AND":
                             output += " && ";
                             break;
                         case "or":
+                        case "OR":
                             output += " || ";
                             break;
                         case "abs":
@@ -1233,6 +1273,14 @@ public class Converter {
                                 throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
                             }
                             output += "Math.abs" + ProcessParantheses() + " ";
+                            break;
+                        case "sqr":
+                            if (!ContainsParantheses) {
+                                throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
+                            }
+                            String o = "Math.pow" + ProcessParantheses();
+                            o = o.substring(0, o.length() - 1) + ", 2)";
+                            output = o + " ";
                             break;
                         case "pow":
                             if (!ContainsParantheses) {
@@ -1325,12 +1373,41 @@ public class Converter {
                 if (!FunctionTable.containsKey(InputKeyword.getString("value"))) {
                     throw new Exception("Unknown keyword on line: " + TokenStream.GetCurrentLine());
                 }
-                String line = InputKeyword.getString("value");
+                String line;
+                boolean IsSqr = false;
+                switch (InputKeyword.getString("value")) {
+                    case "abs":
+                        line = "Math.abs";
+                        break;
+                    case "sqr":
+                        line = "Math.pow";
+                        IsSqr = true;
+                        break;
+                    case "pow":
+                        line = "Math.pow";
+                        break;
+                    case "sqrt":
+                        line = "Math.sqrt";
+                        break;
+                    case "round":
+                        line = "Math.round";
+                        break;
+                    case "trunc":
+                        line = "Math.ceil";
+                        break;
+                    default:
+                        line = InputKeyword.getString("value");
+                        break;
+                }
                 InputKeyword = TokenStream.Next();
                 if (!InputKeyword.getString("value").equals("(")) {
                     throw new Exception("Missing paranthesis on line: " + TokenStream.GetCurrentLine());
                 }
-                Output.add(line + ProcessParantheses()/* + ((TokenStream.Peek().getString("value").equals("eol")) ? ";" : "")*/);
+                String o = line + ProcessParantheses();
+                if (IsSqr) {
+                    o = o.substring(0, o.length() - 1) + ", 2)";
+                }
+                Output.add(o/* + ((TokenStream.Peek().getString("value").equals("eol")) ? ";" : "")*/);
         }
         return Output;
     }
