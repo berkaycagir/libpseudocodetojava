@@ -47,9 +47,11 @@ public class Converter {
     private String FunctionReturnType;
     private String FunctionReturnListType;
     private boolean FunctionReturnSatisfied;
+    private boolean InsideBlock;
     private File OutputFile;
     private List<String> types = Arrays.asList("str", "int", "float", "none", "list");
     private HashMap<String, String> SymbolTable = new HashMap<>();
+    private HashMap<String, String> LocalSymbolTable = new HashMap<>();
     private HashMap<String, String> ArrayTable = new HashMap<>();
     private HashMap<String, List<String>> FunctionTable = new HashMap<String, List<String>>() {
         {
@@ -603,6 +605,8 @@ public class Converter {
                             typeAssigned = true;
                             doesExist = true;
                             SymbolTable.put(var, FunctionTable.get(TempObject.getString("value")).get(0));
+                            if (InsideBlock)
+                                LocalSymbolTable.put(var, FunctionTable.get(TempObject.getString("value")).get(0));
                         }
                         output += ProcessKeywords(TempObject).get(0);
                     }
@@ -638,6 +642,8 @@ public class Converter {
                                     // TODO 1
                                     output = "float" + output.substring(3, output.length());
                                     SymbolTable.put(var, "float");
+                                    if (InsideBlock)
+                                        LocalSymbolTable.put(var, "float");
                                     NumberType = "float";
                                 }
                             } // if left hand variable does not exist and has no type assigned
@@ -658,6 +664,8 @@ public class Converter {
                                 typeAssigned = true;
                                 doesExist = true;
                                 SymbolTable.put(var, ArrayTable.get(ArrayName));
+                                if (InsideBlock)
+                                    LocalSymbolTable.put(var, ArrayTable.get(ArrayName));
                             }
                             output += operand;
                         }
@@ -680,6 +688,8 @@ public class Converter {
                                         && SymbolTable.get(TempObject.getString("value")).equals("float")) {
                                     output = "float" + output.substring(3, output.length());
                                     SymbolTable.put(var, "float");
+                                    if (InsideBlock)
+                                        LocalSymbolTable.put(var, "float");
                                     NumberType = "float";
                                 }
                             } // if left hand variable does not exist and has no type assigned
@@ -700,6 +710,8 @@ public class Converter {
                                 typeAssigned = true;
                                 doesExist = true;
                                 SymbolTable.put(var, SymbolTable.get(TempObject.getString("value")));
+                                if (InsideBlock)
+                                    LocalSymbolTable.put(var, SymbolTable.get(TempObject.getString("value")));
                             }
                             output += TempObject.getString("value");
                         }
@@ -724,6 +736,8 @@ public class Converter {
                     if (TempObject.getString("subtype").equals("float")) {
                         if (!doesExist) {
                             SymbolTable.put(var, "float");
+                            if (InsideBlock)
+                                LocalSymbolTable.put(var, "float");
                             output = "float " + output;
                         } else if (SymbolTable.get(var).equals("str")) {
                             throw new Exception("Mismatching type on line: " + TokenStream.GetCurrentLine());
@@ -731,6 +745,8 @@ public class Converter {
                     } else {
                         if (!doesExist) {
                             SymbolTable.put(var, "int");
+                            if (InsideBlock)
+                                LocalSymbolTable.put(var, "int");
                             output = "int " + output;
                         } else if (SymbolTable.get(var).equals("str")) {
                             throw new Exception("Mismatching type on line: " + TokenStream.GetCurrentLine());
@@ -747,6 +763,8 @@ public class Converter {
                 } else {
                     if (!doesExist) {
                         SymbolTable.put(var, "str");
+                        if (InsideBlock)
+                            LocalSymbolTable.put(var, "str");
                         output = "String " + output;
                     } else if (!SymbolTable.get(var).equals("str")) {
                         throw new Exception("Mismatching types on line: " + TokenStream.GetCurrentLine());
@@ -852,6 +870,8 @@ public class Converter {
                 ArrayTable.put(var, arrayType);
                 if (!doesExist) {
                     SymbolTable.put(var, "list");
+                    if (InsideBlock)
+                        LocalSymbolTable.put(var, "list");
                 }
                 output += "new "
                         + ((arrayType.equals("str") ? "String" : arrayType))
@@ -866,6 +886,7 @@ public class Converter {
     }
 
     private List<String> ProcessIf() throws Exception {
+        InsideBlock = true;
         List<String> output = new ArrayList<>();
         String line = "if ";
         JSONObject TempObject = TokenStream.Next();
@@ -955,10 +976,16 @@ public class Converter {
                     break;
             }
         }
+        LocalSymbolTable.keySet().forEach((i) -> {
+            SymbolTable.remove(i);
+        });
+        LocalSymbolTable.clear();
+        InsideBlock = false;
         return output;
     }
 
     private List<String> ProcessWhile() throws Exception {
+        InsideBlock = true;
         List<String> output = new ArrayList<>();
         String line = "while ";
         JSONObject TempObject = TokenStream.Next();
@@ -987,10 +1014,16 @@ public class Converter {
             }
         }
         output.add("}");
+        LocalSymbolTable.keySet().forEach((i) -> {
+            SymbolTable.remove(i);
+        });
+        LocalSymbolTable.clear();
+        InsideBlock = false;
         return output;
     }
 
     private List<String> ProcessFor() throws Exception {
+        InsideBlock = true;
         List<String> output = new ArrayList<>();
         String line = "for (";
         JSONObject TempObject = TokenStream.Next();
@@ -1071,6 +1104,11 @@ public class Converter {
         if (TempVariable) {
             SymbolTable.remove(var);
         }
+        LocalSymbolTable.keySet().forEach((i) -> {
+            SymbolTable.remove(i);
+        });
+        LocalSymbolTable.clear();
+        InsideBlock = false;
         return output;
     }
 
