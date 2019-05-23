@@ -414,8 +414,8 @@ public class Converter {
             case "kw":
                 List<String> returnList = ProcessKeywords(TempObject);
                 if (returnList.size() == 1
-                    && TokenStream.Peek().getString("value").equals("eol")
-                    && returnList.get(0).charAt(returnList.get(0).length() - 1) != ';') {
+                        && TokenStream.Peek().getString("value").equals("eol")
+                        && returnList.get(0).charAt(returnList.get(0).length() - 1) != ';') {
                     String line = returnList.get(0);
                     returnList.clear();
                     returnList.add(line + ";");
@@ -600,7 +600,7 @@ public class Converter {
                                 NumberType = "float";
                             }
                             if (SymbolTable.get(var).equals("int")
-                                && FunctionTable.get(TempObject.getString("value")).get(0).equals("")) {
+                                    && FunctionTable.get(TempObject.getString("value")).get(0).equals("")) {
                                 output += "(int) ";
                             }
                         } // if left hand variable does not exist and has no type assigned
@@ -1453,7 +1453,7 @@ public class Converter {
                     } else if (!FunctionReturnType.equals("str")) {
                         throw new Exception("Incompatible return types on line: " + TokenStream.GetCurrentLine());
                     }
-                    line += TempObject.getString("value") + ((TempObject.getString("subtype").equals("float")) ? "f" : "")  + " ";
+                    line += TempObject.getString("value") + ((TempObject.getString("subtype").equals("float")) ? "f" : "") + " ";
                     break;
                 case "var":
                     if (FunctionReturnType.equals("list")) {
@@ -1543,7 +1543,9 @@ public class Converter {
             }
             TempObject = TokenStream.Next();
         }
-        FunctionReturnSatisfied = true;
+        if (!InsideBlock) {
+            FunctionReturnSatisfied = true;
+        }
         return Arrays.asList(line.substring(0, line.length() - 1) + ";");
     }
 }
