@@ -388,7 +388,7 @@ public class Converter {
         List<String> Output = new ArrayList<>();
         switch (TempObject.getString("type")) {
             case "num":
-                Output.add(TempObject.getString("value") + " ");
+                Output.add(TempObject.getString("value") + ((TempObject.getString("subtype").equals("float")) ? "f" : "") + " ");
                 break;
             case "var":
                 String var = TempObject.getString("value");
@@ -470,7 +470,7 @@ public class Converter {
                     }
                     break;
                 case "num":
-                    output += TempObject.getString("value");
+                    output += TempObject.getString("value") + ((TempObject.getString("subtype").equals("float")) ? "f" : "");
                     break;
                 case "op":
                     // not complete
@@ -596,6 +596,10 @@ public class Converter {
                                 output = "float" + output.substring(3, output.length());
                                 SymbolTable.put(var, "float");
                                 NumberType = "float";
+                            }
+                            if (SymbolTable.get(var).equals("int")
+                                && FunctionTable.get(TempObject.getString("value")).get(0).equals("")) {
+                                output += "(int) ";
                             }
                         } // if left hand variable does not exist and has no type assigned
                         else if (!doesExist && !typeAssigned) {
@@ -759,6 +763,8 @@ public class Converter {
                                 LocalSymbolTable.put(var, "float");
                             }
                             output = "float " + output;
+                        } else if (SymbolTable.get(var).equals("int")) {
+                            output += "(int) ";
                         } else if (SymbolTable.get(var).equals("str")) {
                             throw new Exception("Mismatching type on line: " + TokenStream.GetCurrentLine());
                         }
@@ -769,6 +775,8 @@ public class Converter {
                                 LocalSymbolTable.put(var, "int");
                             }
                             output = "int " + output;
+                        } else if (SymbolTable.get(var).equals("float")) {
+                            output += "(float) ";
                         } else if (SymbolTable.get(var).equals("str")) {
                             throw new Exception("Mismatching type on line: " + TokenStream.GetCurrentLine());
                         }
@@ -1334,7 +1342,7 @@ public class Converter {
                     }
                     break;
                 case "num":
-                    output += TempObject.getString("value") + " ";
+                    output += TempObject.getString("value") + ((TempObject.getString("subtype").equals("float")) ? "f" : "") + " ";
                     break;
                 case "str":
                     output += "\"" + TempObject.getString("value") + "\" ";
@@ -1443,7 +1451,7 @@ public class Converter {
                     } else if (!FunctionReturnType.equals("str")) {
                         throw new Exception("Incompatible return types on line: " + TokenStream.GetCurrentLine());
                     }
-                    line += TempObject.getString("value") + " ";
+                    line += TempObject.getString("value") + ((TempObject.getString("subtype").equals("float")) ? "f" : "")  + " ";
                     break;
                 case "var":
                     if (FunctionReturnType.equals("list")) {
