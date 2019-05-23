@@ -413,7 +413,9 @@ public class Converter {
                 break;
             case "kw":
                 List<String> returnList = ProcessKeywords(TempObject);
-                if (returnList.size() == 1 && TokenStream.Peek().getString("value").equals("eol")) {
+                if (returnList.size() == 1
+                    && TokenStream.Peek().getString("value").equals("eol")
+                    && returnList.get(0).charAt(returnList.get(0).length() - 1) != ';') {
                     String line = returnList.get(0);
                     returnList.clear();
                     returnList.add(line + ";");
