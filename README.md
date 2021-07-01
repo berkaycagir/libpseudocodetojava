@@ -1,0 +1,2 @@
+# libpseudocodetojava
+This project contains the source code of the BSc dissertation of [edaozel](https://github.com/edaozel) and myself. It's provided as archived because no active development takes place. For more information in Turkish, take a look at [this](poster.png).
